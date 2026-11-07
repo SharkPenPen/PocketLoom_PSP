@@ -235,8 +235,10 @@ int main(int argc, char** argv) {
     dl.Reset();
     game.Render(dl, textures, texture_count);
     if (texture_count > 1) {
+      TraceInt("dl_before", dl.count());
       dl.DrawImage(eng::Rect2{eng::Vec2{10.0f, 100.0f}, eng::Vec2{32.0f, 32.0f}},
                    textures[1], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
+      TraceInt("dl_after", dl.count());
     }
     Trace("render_ok", nullptr);
     eng::RenderBackend().submit(dl);
