@@ -741,7 +741,13 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
       }
     }
   }
+  std::vector<std::vector<unsigned char>> image_backup;
+  image_backup.reserve(p.images.size());
+  for (const Image& img : p.images) image_backup.push_back(img.rgba);
   std::swap(*out, p);
+  for (size_t i = 0; i < out->images.size() && i < image_backup.size(); ++i) {
+    out->images[i].rgba = std::move(image_backup[i]);
+  }
   return true;
 }
 
