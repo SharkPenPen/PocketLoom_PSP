@@ -169,11 +169,15 @@ int main(int argc, char** argv) {
   r4::AudioInit();  // 当前 audio_psp 静音
 
   eng::TextureId textures[32] = {};
+  static std::vector<std::vector<unsigned char>> texture_data;
   const int texture_count =
       static_cast<int>(p3d.images.size()) < 32 ? static_cast<int>(p3d.images.size()) : 32;
+  texture_data.resize(static_cast<size_t>(texture_count));
   for (int i = 0; i < texture_count; ++i) {
     const r4::Image& img = p3d.images[i];
-    textures[i] = eng::TextureCreate(img.rgba.data(), img.width, img.height);
+    texture_data[static_cast<size_t>(i)] = img.rgba;
+    textures[i] = eng::TextureCreate(texture_data[static_cast<size_t>(i)].data(),
+                                     img.width, img.height);
   }
 
   r4::Game game;
