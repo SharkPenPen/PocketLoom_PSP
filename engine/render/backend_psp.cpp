@@ -137,8 +137,8 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
     return true;
   }
 
-  const int pw = NextPow2(tex->width);
-  const int ph = NextPow2(tex->height);
+  const int pw = std::max(32, NextPow2(tex->width));
+  const int ph = std::max(32, NextPow2(tex->height));
   if (pw <= 0 || ph <= 0 || pw > 1024 || ph > 1024) {
     log_printf(LogLevel::kError, "psp: texture %u too large (%dx%d)", id, tex->width,
                tex->height);
