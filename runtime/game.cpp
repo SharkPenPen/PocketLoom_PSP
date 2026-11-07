@@ -1744,6 +1744,7 @@ void Game::UpdateInteraction(const eng::InputState& input) {
 }
 
 void Game::Update(float dt, const eng::InputState& input) {
+  GameTrace("update_enter");
   if (p3d_ == nullptr || player_object_ < 0) return;
   for (int i = 0; i < eng::kKeyCount; ++i) {
     key_hold_[i] = input.down[i] ? key_hold_[i] + 1 : 0;
@@ -1752,6 +1753,7 @@ void Game::Update(float dt, const eng::InputState& input) {
   ++tick_;
   if (dt < 0.0f) dt = 0.0f;
   if (dt > 0.05f) dt = 0.05f;
+  GameTrace("update_after_keys");
   if (UiModalActive()) {
     const int top = modal_stack_.back();
     if (top >= 0 && top < static_cast<int>(p3d_->ui_screens.size())) {
@@ -1799,7 +1801,9 @@ void Game::Update(float dt, const eng::InputState& input) {
     prev_input_ = input;
     return;
   }
+  GameTrace("update_before_sim");
   UpdateSimulation(dt, input);
+  GameTrace("update_after_sim");
   prev_input_ = input;  // 下一帧算 key_up 用
 }
 
