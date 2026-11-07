@@ -252,7 +252,7 @@ void DrawList::DrawImage(const Rect2& dst, TextureId tex, u32 tint, TexRegion sr
   if (!src.whole()) {
     if (src.x < 0 || src.y < 0 || src.w <= 0 || src.h <= 0 ||
         src.x + src.w > t->width || src.y + src.h > t->height) {
-      DropTrace("badregion", static_cast<int>(tex), src.x, src.y, src.w, src.h);
+      DropTrace("badregion", static_cast<int>(tex), src.x, src.y, src.w);
       if (!warned_badregion_) {
         warned_badregion_ = true;
         log_printf(LogLevel::kError,
