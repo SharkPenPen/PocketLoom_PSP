@@ -268,9 +268,10 @@ demo：samples/bee、samples/platformer、samples/topdown
 - PPSSPP：`C:\Users\11747\Documents\PPSSPP\PSP\GAME\PocketLoom`（新 PPSSPP 用 Documents 下的 memstick，不是旧 `ppsspp_win\memstick`）。
 - 启动参数必须带：`--escape-exit --fullscreen <EBOOT.PBP>`。
 - 当前已通：启动、P3dLoad、Game::Init、Update、Render、HUD 文本/分数条、命令提交。
-- 当前未通：世界/精灵纹理不可见。已排除：坐标（debug 矩形在玩家位置可见）、纹理句柄（psp_main 侧 id 有效）、上传缓冲中心像素（非 0）、整图 UV、P3d move/swap。
-- 最接近的线索：DrawList 有 2048 image（地图 2040 + 对象 8），对象命令 texture 2/4 确实进了 backend；地图/文字可见，16×16 对象仍不可见。已排除 ABGR/场景数据；下一步只查 16×16 GU 纹理绑定/UV 和 32×32 补边实验。
-- 逐图同步 `GpuTrace` 会拖慢到只看到前 532 条，不要再做逐图写文件；用 `cmd_images`/`img_non1` 汇总。
+- 已通：世界/地图/精灵纹理可见。根因是 **PSP GU 纹理坐标是 texel 坐标，不是 0..1**；SDL PSP 也是 `uv * textureWidth`。`DrawImage` 必须用 `u0=sx, v0=sy, u1=sx+sw, v1=sy+sh`，不能除以 POT。
+- 当前纹理路径：RGBA 直拷、POT 至少 32/64、`GU_PSM_8888`、`GU_SPRITES`、纹理坐标按 texel；**swizzle 可关闭**（我们的纹理线性数据在 PPSSPP 正常）。
+- 逐图同步 `GpuTrace` 会拖慢；调试用 `cmd_images`/`img_non1` 汇总，不要逐图写文件。
+- 地图/对象恢复后，PSP 仍需清理调试 trace 和 probes。
 - 调试痕迹（PL_ERR/PL_TRACE/PL_GAME/PL_GPU/PL_DROP/PL_INPUT、GameTrace/GpuTrace）大量留在源码；发布前必须清。
 - PSP 解析必须保留的 workaround：`Action::frames` 用 `push_back(AnimFrame{})`；nontrivial 容器用 `reserve/emplace`；`DrawList` 放 static；主线程栈 256KB。
 - 参考文档：`docs/21-PSP后端.md`。
