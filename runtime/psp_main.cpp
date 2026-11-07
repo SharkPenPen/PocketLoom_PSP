@@ -188,6 +188,10 @@ int main(int argc, char** argv) {
                                      img.width, img.height);
   }
 
+  if (texture_count > 1) {
+    TraceInt("texid1", static_cast<int>(textures[1]));
+    TraceInt("texvalid1", eng::TextureGet(textures[1]) != nullptr ? 1 : 0);
+  }
   r4::Game game;
   game.SetSavePath(kSavePath);
   Trace("game_before_init", nullptr);
