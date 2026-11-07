@@ -18,6 +18,7 @@
 #include <pspdisplay.h>
 #include <pspkernel.h>
 #include <psprtc.h>
+#include <pspiofilemgr.h>
 
 #include <cstdio>
 #include <cstring>
@@ -68,6 +69,12 @@ void ScanInput() {
   // PSP 的 ○/× 和 PC 的 A/B 语义不同；这里按“右手确认”习惯：
   //   × = A（确认），○ = B（取消），□ = X，△ = Y。
   const u32 b = pad.Buttons;
+  if (b != g.prev_buttons) {
+    char buf[48];
+    std::snprintf(buf, sizeof(buf), "buttons %u\n", static_cast<unsigned>(b));
+    const SceUID fd = sceIoOpen("ms0:/PL_INPUT.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+    if (fd >= 0) { sceIoWrite(fd, buf, static_cast<unsigned>(std::strlen(buf))); sceIoClose(fd); }
+  }
   SetKey(static_cast<int>(Key::kA), (b & PSP_CTRL_CROSS) != 0);
   SetKey(static_cast<int>(Key::kB), (b & PSP_CTRL_CIRCLE) != 0);
   SetKey(static_cast<int>(Key::kX), (b & PSP_CTRL_SQUARE) != 0);
