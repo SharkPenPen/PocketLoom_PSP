@@ -186,6 +186,7 @@ bool ReadAction(Reader& r, Action* a, std::string* error) {
     }
     PT_MARK("frame_ok");
   }
+  PT_N("act_frames_end", a->frames.size());
   a->fps = r.I32();
   a->loop = (r.U8() != 0);
   a->offset_x = r.I32();
