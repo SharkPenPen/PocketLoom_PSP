@@ -10,7 +10,7 @@ jobs:
       - name: Install 3DS tools
         run: |
           apt-get update
-          apt-get install -y cmake ninja-build
+          apt-get install -y cmake make ninja-build
           dkp-pacman -S --noconfirm 3ds-dev
       - name: Configure
         env:

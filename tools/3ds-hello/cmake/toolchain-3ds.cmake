@@ -10,7 +10,7 @@ endif()
 
 set(DEVKITARM "${DEVKITPRO}/devkitARM")
 set(CTRULIB "${DEVKITPRO}/libctru")
-if(NOT EXISTS "${DEVKITARM}/bin/arm-none-eabi-g++.exe")
+if(NOT EXISTS "${DEVKITARM}/bin/arm-none-eabi-g++" AND NOT EXISTS "${DEVKITARM}/bin/arm-none-eabi-g++.exe")
   message(FATAL_ERROR "devkitARM compiler not found: ${DEVKITARM}")
 endif()
 
