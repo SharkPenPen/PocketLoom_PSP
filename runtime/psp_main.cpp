@@ -206,6 +206,19 @@ int main(int argc, char** argv) {
     TraceInt("texid2", static_cast<int>(textures[2]));
     TraceInt("texvalid2", eng::TextureGet(textures[2]) != nullptr ? 1 : 0);
   }
+  static eng::u8 checker[16 * 16 * 4];
+  for (int y = 0; y < 16; ++y) {
+    for (int x = 0; x < 16; ++x) {
+      eng::u8* px = &checker[(y * 16 + x) * 4];
+      const bool on = (((x / 4) + (y / 4)) & 1) != 0;
+      px[0] = on ? 255 : 0;
+      px[1] = 0;
+      px[2] = on ? 0 : 255;
+      px[3] = 255;
+    }
+  }
+  const eng::TextureId checker_tex = eng::TextureCreate(checker, 16, 16);
+
   r4::Game game;
   game.SetSavePath(kSavePath);
   Trace("game_before_init", nullptr);
@@ -248,10 +261,12 @@ int main(int argc, char** argv) {
 
     dl.Reset();
     game.Render(dl, textures, texture_count);
+    if (checker_tex != 0) {
+      dl.DrawImage(eng::Rect2{eng::Vec2{0.0f, 0.0f}, eng::Vec2{480.0f, 272.0f}},
+                   checker_tex, 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
+    }
     if (texture_count > 1) {
       TraceInt("dl_before", dl.count());
-      dl.DrawImage(eng::Rect2{eng::Vec2{0.0f, 0.0f}, eng::Vec2{480.0f, 272.0f}},
-                   textures[1], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
       TraceInt("dl_after", dl.count());
     }
     Trace("render_ok", nullptr);
