@@ -1943,8 +1943,12 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
 
   auto draw_object = [&](int obj_index, float x, float y, int action_index,
                           int frame_index, bool flip_x) {
+    GameTraceInt("draw_obj", obj_index);
     if (obj_index < 0 || obj_index >= static_cast<int>(p3d_->objects.size())) return;
     const Object& o = p3d_->objects[obj_index];
+    GameTraceInt("draw_img", o.image);
+    GameTraceInt("draw_fw", o.frame_w);
+    GameTraceInt("draw_fh", o.frame_h);
     if (o.image < 0 || o.image >= texture_count) return;
     const eng::TextureId tex = textures[o.image];
     if (tex == 0) return;
@@ -1970,6 +1974,8 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
     const int tex_w = (o.image >= 0 && o.image < static_cast<int>(p3d_->images.size()))
                           ? p3d_->images[o.image].width
                           : fw;
+    GameTraceInt("draw_frame", frame_no);
+    GameTraceInt("draw_texw", tex_w);
     const int tc = (tex_w / fw > 0) ? frame_no % (tex_w / fw) : 0;
     const int tr = (tex_w / fw > 0) ? frame_no / (tex_w / fw) : 0;
     const eng::TexRegion src = eng::TexRegion::Make(tc * fw, tr * fh, fw, fh);
