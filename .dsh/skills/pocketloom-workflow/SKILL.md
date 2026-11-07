@@ -269,7 +269,8 @@ demo：samples/bee、samples/platformer、samples/topdown
 - 启动参数必须带：`--escape-exit --fullscreen <EBOOT.PBP>`。
 - 当前已通：启动、P3dLoad、Game::Init、Update、Render、HUD 文本/分数条、命令提交。
 - 当前未通：世界/精灵纹理不可见。已排除：坐标（debug 矩形在玩家位置可见）、纹理句柄（psp_main 侧 id 有效）、上传缓冲中心像素（非 0）、整图 UV、P3d move/swap。
-- 最接近的线索：DrawList 里对象 Image 命令存在但 backend 只记录到字体纹理 `tex_ok 1`；优先查 DrawList/TextureGet 跨库或对象 Image 是否真正进 backend，不要再从坐标/解析器重头查。
+- 最接近的线索：DrawList 有 2048 image（地图 2040 + 对象 8），对象命令 texture 2/4 确实进了 backend；地图/文字可见，16×16 对象仍不可见。已排除 ABGR/场景数据；下一步只查 16×16 GU 纹理绑定/UV 和 32×32 补边实验。
+- 逐图同步 `GpuTrace` 会拖慢到只看到前 532 条，不要再做逐图写文件；用 `cmd_images`/`img_non1` 汇总。
 - 调试痕迹（PL_ERR/PL_TRACE/PL_GAME/PL_GPU/PL_DROP/PL_INPUT、GameTrace/GpuTrace）大量留在源码；发布前必须清。
 - PSP 解析必须保留的 workaround：`Action::frames` 用 `push_back(AnimFrame{})`；nontrivial 容器用 `reserve/emplace`；`DrawList` 放 static；主线程栈 256KB。
 - 参考文档：`docs/21-PSP后端.md`。
