@@ -257,11 +257,14 @@ void DrawImage(const DrawCmd& cmd) {
   const float y1 = y0 + cmd.rect.size.y;
   const u32 color = ToGuColor(cmd.color);
 
-  const VtxTex v[4] = {
-      {u0, v0, color, x0, y0, 0.0f},
-      {u1, v0, color, x1, y0, 0.0f},
-      {u0, v1, color, x0, y1, 0.0f},
-      {u1, v1, color, x1, y1, 0.0f},
+  // SDL PSP COPY 路径：两个 sprite 顶点，纹理/顶点，不带顶点色；颜色走 GU 状态。
+  struct VtxSprite {
+    float u, v;
+    float x, y, z;
+  };
+  const VtxSprite v[2] = {
+      {u0, v0, x0, y0, 0.0f},
+      {u1, v1, x1, y1, 0.0f},
   };
 
   ScissorFromRect(cmd.clip);
@@ -272,9 +275,9 @@ void DrawImage(const DrawCmd& cmd) {
   sceGuTexFlush();
   sceGuTexSync();
   sceGuColor(color);
-  sceGuDrawArray(GU_TRIANGLE_STRIP,
-                 GU_TEXTURE_32BITF | GU_COLOR_8888 | GU_VERTEX_32BITF | GU_TRANSFORM_2D,
-                 4, nullptr, v);
+  sceGuDrawArray(GU_SPRITES,
+                 GU_TEXTURE_32BITF | GU_VERTEX_32BITF | GU_TRANSFORM_2D,
+                 2, nullptr, v);
 }
 
 void DrawRect(const DrawCmd& cmd) {
