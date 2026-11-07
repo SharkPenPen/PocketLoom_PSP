@@ -8,6 +8,21 @@
 #include <fstream>
 #include <iterator>
 
+#if defined(__psp__)
+#include <pspiofilemgr.h>
+static void GameTrace(const char* tag) {
+  const SceUID fd = sceIoOpen("ms0:/PL_GAME.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+  if (fd < 0) return;
+  int n = 0;
+  while (tag[n] != '\0' && n < 80) ++n;
+  sceIoWrite(fd, tag, static_cast<unsigned int>(n));
+  sceIoWrite(fd, "\n", 1);
+  sceIoClose(fd);
+}
+#else
+#define GameTrace(tag) ((void)0)
+#endif
+
 #include "engine/base/rect.h"
 #include "engine/render/texture.h"
 #include "runtime/ui.h"
@@ -147,6 +162,7 @@ const Object* FindPlayerObject(const P3d& p, const Scene& s, int* out_index) {
 }  // namespace
 
 bool Game::Init(const P3d& p3d, std::string* error) {
+  GameTrace("init_enter");
   if (p3d.scenes.empty()) {
     if (error != nullptr) *error = "runtime: no scenes";
     return false;
@@ -162,6 +178,7 @@ bool Game::Init(const P3d& p3d, std::string* error) {
   toast_.clear();
   toast_timer_ = 0.0f;
   SetScene(scene_index_);
+  GameTrace("init_after_scene");
   if (p3d.title_ui >= 0 &&
       p3d.title_ui < static_cast<int>(p3d.ui_screens.size())) {
     OpenUiById(p3d.ui_screens[static_cast<size_t>(p3d.title_ui)].id);
@@ -201,6 +218,7 @@ void Game::PlayClipById(const std::string& id) {
 }
 
 void Game::SetScene(int index) {
+  GameTrace("scene_enter");
   if (p3d_ == nullptr) return;
   if (index < 0 || index >= static_cast<int>(p3d_->scenes.size())) return;
   modal_stack_.clear();
@@ -275,9 +293,13 @@ void Game::SetScene(int index) {
   }
   camera_mode_ = (s.camera_mode == "fixed") ? CameraMode::kFixed
                                                  : CameraMode::kFollow;
+  GameTrace("scene_before_runtime");
   InitSceneRuntime();
+  GameTrace("scene_after_runtime");
   UpdateCamera(0.016f);
+  GameTrace("scene_after_camera");
   PlaySceneBgm();
+  GameTrace("scene_after_bgm");
 }
 
 void Game::InitSceneRuntime() {
