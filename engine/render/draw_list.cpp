@@ -1,6 +1,20 @@
 // engine/render/draw_list.cpp
 #include "render/draw_list.h"
 
+#if defined(__psp__)
+#include <pspiofilemgr.h>
+static void DropTrace(const char* tag, int a, int b, int c, int d) {
+  char buf[128];
+  std::snprintf(buf, sizeof(buf), "%s %d %d %d %d\n", tag, a, b, c, d);
+  const SceUID fd = sceIoOpen("ms0:/PL_DROP.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+  if (fd < 0) return;
+  sceIoWrite(fd, buf, static_cast<unsigned int>(std::strlen(buf)));
+  sceIoClose(fd);
+}
+#else
+#define DropTrace(tag, a, b, c, d) ((void)0)
+#endif
+
 #include <cstdio>
 
 #include "base/log.h"
@@ -220,6 +234,7 @@ void DrawList::DrawImage(const Rect2& dst, TextureId tex, u32 tint, TexRegion sr
   //   而且会让命令流 diff 出现"两端都画不出来"的假一致。
   const Texture* t = TextureGet(tex);
   if (t == nullptr || !t->valid()) {
+    DropTrace("badtex", static_cast<int>(tex), t != nullptr, t ? t->width : 0, t ? t->height : 0);
     if (!warned_badtex_) {
       warned_badtex_ = true;
       log_printf(LogLevel::kError, "drawlist: 纹理 %u 无效，Image 命令被丢掉",
@@ -234,6 +249,7 @@ void DrawList::DrawImage(const Rect2& dst, TextureId tex, u32 tint, TexRegion sr
   if (!src.whole()) {
     if (src.x < 0 || src.y < 0 || src.w <= 0 || src.h <= 0 ||
         src.x + src.w > t->width || src.y + src.h > t->height) {
+      DropTrace("badregion", static_cast<int>(tex), src.x, src.y, src.w, src.h);
       if (!warned_badregion_) {
         warned_badregion_ = true;
         log_printf(LogLevel::kError,
