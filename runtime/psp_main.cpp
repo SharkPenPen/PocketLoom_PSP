@@ -46,6 +46,11 @@ void Trace(const char* tag, const char* text) {
   sceIoWrite(fd, "\n", 1);
   sceIoClose(fd);
 }
+void TraceInt(const char* tag, int value) {
+  char buf[96];
+  std::snprintf(buf, sizeof(buf), "%s %d", tag, value);
+  Trace(buf, nullptr);
+}
 
 bool ReadFile(const char* path, std::vector<unsigned char>* out) {
   const SceUID fd = sceIoOpen(path, PSP_O_RDONLY, 0);
@@ -134,6 +139,10 @@ int main(int argc, char** argv) {
   }
 
   Trace("load_ok", nullptr);
+  if (!p3d.objects.empty() && !p3d.objects[0].actions.empty()) {
+    TraceInt("p3d_obj0_actions", static_cast<int>(p3d.objects[0].actions.size()));
+    TraceInt("p3d_obj0_frames", static_cast<int>(p3d.objects[0].actions[0].frames.size()));
+  }
   // p3d 是左下原点、y 向上；引擎内部是屏幕系，这里翻一次。
   r4::MirrorSceneYUp(p3d, p3d.view_h);
   Trace("mirror_ok", nullptr);
@@ -180,6 +189,9 @@ int main(int argc, char** argv) {
     eng::RenderBackend().shutdown();
     eng::Platform().shutdown();
     return 6;
+  }
+  if (!p3d.objects.empty() && !p3d.objects[0].actions.empty()) {
+    TraceInt("post_init_frames", static_cast<int>(p3d.objects[0].actions[0].frames.size()));
   }
   Trace("game_init_ok", nullptr);
 
