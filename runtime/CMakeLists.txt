@@ -6,11 +6,17 @@ add_library(runtime_core STATIC game.cpp ui.cpp)
 target_link_libraries(runtime_core PUBLIC p3d_format engine_core)
 
 if(3DS)
-  add_executable(game_3ds 3ds_main.cpp)
+  add_executable(game_3ds 3ds_main.cpp audio_3ds.cpp)
   set_target_properties(game_3ds PROPERTIES SUFFIX ".elf")
   target_link_libraries(game_3ds PRIVATE runtime_core engine_host_3ds citro2d citro3d ctru m)
+  set(ROMFS_DIR "${CMAKE_BINARY_DIR}/romfs")
+  add_custom_command(TARGET game_3ds PRE_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${ROMFS_DIR}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/samples/bee/bee.p3d" "${ROMFS_DIR}/game.p3d"
+    COMMENT "3ds: stage romfs/game.p3d")
   include("${CMAKE_SOURCE_DIR}/cmake/3dsx.cmake")
-  eng_add_3dsx(game_3ds TITLE "PocketLoom 3DS" DESC "PocketLoom 3DS" AUTHOR "PocketLoom")
+  eng_add_3dsx(game_3ds ROMFS "${ROMFS_DIR}" TITLE "PocketLoom 3DS" DESC "PocketLoom 3DS" AUTHOR "PocketLoom")
 elseif(PSP)
   add_executable(game_psp psp_main.cpp audio_psp.cpp)
   set_target_properties(game_psp PROPERTIES SUFFIX ".elf")

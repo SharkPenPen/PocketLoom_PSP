@@ -4,7 +4,7 @@ if(NOT _smdhtool OR NOT _3dsxtool)
   message(FATAL_ERROR "smdhtool/3dsxtool not found under ${DEVKITPRO}/tools/bin")
 endif()
 function(eng_add_3dsx target)
-  cmake_parse_arguments(A "" "TITLE;DESC;AUTHOR" "" ${ARGN})
+  cmake_parse_arguments(A "" "ROMFS;TITLE;DESC;AUTHOR" "" ${ARGN})
   if(NOT A_TITLE)
     set(A_TITLE "${target}")
   endif()
@@ -17,9 +17,13 @@ function(eng_add_3dsx target)
   set(_outdir "$<TARGET_FILE_DIR:${target}>")
   set(_smdh "${_outdir}/${target}.smdh")
   set(_3dsx "${_outdir}/${target}.3dsx")
+  set(_flags "--smdh=${_smdh}")
+  if(A_ROMFS)
+    list(APPEND _flags "--romfs=${A_ROMFS}")
+  endif()
   add_custom_command(TARGET ${target} POST_BUILD
     COMMAND "${_smdhtool}" --create "${A_TITLE}" "${A_DESC}" "${A_AUTHOR}" "${CTRULIB}/default_icon.png" "${_smdh}"
-    COMMAND "${_3dsxtool}" "$<TARGET_FILE:${target}>" "${_3dsx}" "--smdh=${_smdh}"
+    COMMAND "${_3dsxtool}" "$<TARGET_FILE:${target}>" "${_3dsx}" ${_flags}
     COMMENT "3dsx: packing ${target}.3dsx"
     VERBATIM)
 endfunction()

@@ -1,18 +1,62 @@
-// PocketLoom 3DS stage 1: platform + clear/rect + input, no Game yet.
-#include "platform/platform.h"
-#include "render/draw_list.h"
-
+// PocketLoom 3DS stage 2: read p3d and run Game update/render (clear/rect backend).
 #include <3ds.h>
 
+#include <string>
+#include <vector>
+
+#include "engine/platform/platform.h"
+#include "engine/render/draw_list.h"
+#include "engine/render/texture.h"
+#include "runtime/audio.h"
+#include "runtime/game.h"
+#include "runtime/p3d.h"
+
 int main() {
+  romfsInit();
   eng::PlatformConfig cfg;
   cfg.width = 400;
   cfg.height = 240;
   cfg.title = "PocketLoom";
-  if (!eng::Platform().init(cfg)) return 1;
+  if (!eng::Platform().init(cfg)) {
+    romfsExit();
+    return 1;
+  }
   if (!eng::RenderBackend().init()) {
     eng::Platform().shutdown();
+    romfsExit();
     return 2;
+  }
+  r4::AudioInit();
+
+  r4::P3d p3d;
+  std::string err;
+  if (!r4::P3dLoadFile("romfs:/game.p3d", &p3d, &err)) {
+    eng::RenderBackend().shutdown();
+    eng::Platform().shutdown();
+    romfsExit();
+    return 3;
+  }
+
+  static std::vector<std::vector<unsigned char>> texture_data;
+  eng::TextureId textures[32] = {};
+  const int texture_count = static_cast<int>(p3d.images.size()) < 32
+                                ? static_cast<int>(p3d.images.size())
+                                : 32;
+  texture_data.resize(static_cast<size_t>(texture_count));
+  for (int i = 0; i < texture_count; ++i) {
+    texture_data[static_cast<size_t>(i)] = p3d.images[static_cast<size_t>(i)].rgba;
+    textures[i] = eng::TextureCreate(texture_data[static_cast<size_t>(i)].data(),
+                                     p3d.images[static_cast<size_t>(i)].width,
+                                     p3d.images[static_cast<size_t>(i)].height);
+  }
+
+  r4::Game game;
+  game.SetSavePath("sdmc:/3ds/PocketLoom/save0.dat");
+  if (!game.Init(p3d, &err)) {
+    eng::RenderBackend().shutdown();
+    eng::Platform().shutdown();
+    romfsExit();
+    return 4;
   }
 
   static eng::DrawList dl;
@@ -24,15 +68,20 @@ int main() {
     eng::Platform().pump_events();
     if (eng::Platform().should_quit()) break;
 
+    const eng::InputState input = eng::Platform().input();
+    game.Update(1.0f / 60.0f, input);
+
     dl.Reset();
-    dl.Clear(0xFF101018u);
-    dl.DrawRect(eng::Rect2{eng::Vec2{40.0f, 40.0f}, eng::Vec2{120.0f, 80.0f}},
-                0xFF0000FFu);
+    game.Render(dl, textures, texture_count);
+    dl.DrawRect(eng::Rect2{eng::Vec2{8.0f, 8.0f}, eng::Vec2{12.0f, 12.0f}},
+                0xFF00FF00u);
     eng::RenderBackend().submit(dl);
     eng::Platform().end_frame();
   }
 
+  r4::AudioShutdown();
   eng::RenderBackend().shutdown();
   eng::Platform().shutdown();
+  romfsExit();
   return 0;
 }
