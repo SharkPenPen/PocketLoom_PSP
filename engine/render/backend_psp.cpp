@@ -187,9 +187,11 @@ struct VtxColor {
 };
 
 void DrawImage(const DrawCmd& cmd) {
+  GpuTrace("img_begin", static_cast<int>(cmd.texture));
   const Texture* tex = nullptr;
   PspTexture* pt = nullptr;
   if (!EnsureTexture(cmd.texture, &tex, &pt)) return;
+  GpuTrace("img_ensured", static_cast<int>(cmd.texture));
 
   const int sw = cmd.src.whole() ? pt->width : static_cast<int>(cmd.src.w);
   const int sh = cmd.src.whole() ? pt->height : static_cast<int>(cmd.src.h);
@@ -229,13 +231,17 @@ void DrawImage(const DrawCmd& cmd) {
   ScissorFromRect(cmd.clip);
 
   sceGuEnable(GU_TEXTURE_2D);
+  GpuTrace("img_texmode", static_cast<int>(cmd.texture));
   sceGuTexMode(GU_PSM_8888, 0, 0, 0);
   sceGuTexImage(0, pt->pot_w, pt->pot_h, pt->pot_w, pt->data);
+  GpuTrace("img_teximage", static_cast<int>(cmd.texture));
   sceGuTexSync();
   sceGuColor(color);
+  GpuTrace("img_draw", static_cast<int>(cmd.texture));
   sceGuDrawArray(GU_TRIANGLE_STRIP,
                  GU_TEXTURE_32BITF | GU_COLOR_8888 | GU_VERTEX_32BITF | GU_TRANSFORM_2D,
                  4, nullptr, v);
+  GpuTrace("img_done", static_cast<int>(cmd.texture));
 }
 
 void DrawRect(const DrawCmd& cmd) {
