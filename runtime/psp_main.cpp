@@ -181,6 +181,7 @@ int main(int argc, char** argv) {
     eng::Platform().shutdown();
     return 6;
   }
+  Trace("game_init_ok", nullptr);
 
   // ★ 必须放静态区，不能放栈上 ★
   //   DrawList 有 kMaxCmds=6144 个 DrawCmd 槽，sizeof(DrawCmd)=60，
@@ -192,6 +193,7 @@ int main(int argc, char** argv) {
   dl.ResetScreenSizes();
   dl.SetScreenSize(480, 272);
 
+  Trace("loop_enter", nullptr);
   int frames = 0;
   while (!eng::Platform().should_quit()) {
     eng::Platform().begin_frame();
@@ -200,11 +202,15 @@ int main(int argc, char** argv) {
 
     const eng::InputState input = eng::Platform().input();
     game.Update(1.0f / 60.0f, input);
+    Trace("update_ok", nullptr);
 
     dl.Reset();
     game.Render(dl, textures, texture_count);
+    Trace("render_ok", nullptr);
     eng::RenderBackend().submit(dl);
+    Trace("submit_ok", nullptr);
     eng::Platform().end_frame();
+    Trace("frame_ok", nullptr);
 
     ++frames;
     if (frames_limit > 0 && frames >= frames_limit) break;
