@@ -3213,6 +3213,7 @@ void DrawTilePageCenter() {
   const ImVec2 avail = ImGui::GetContentRegionAvail();
   float scale = std::min(avail.x / static_cast<float>(pv->width),
                          avail.y / static_cast<float>(pv->height));
+  scale = std::min(scale, 8.0f);
   scale *= zoom;
   if (scale <= 0.0f) return;
   const ImVec2 size(static_cast<float>(pv->width) * scale,
