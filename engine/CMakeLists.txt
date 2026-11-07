@@ -22,6 +22,7 @@ target_include_directories(engine_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 if(3DS)
   add_library(engine_host_3ds STATIC
     render/backend_citro.cpp
+    render/swizzle.cpp
     platform/_3ds/platform_3ds.cpp
   )
   target_include_directories(engine_host_3ds PUBLIC "${CTRULIB}/include")
