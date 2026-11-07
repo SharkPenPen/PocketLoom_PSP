@@ -48,6 +48,7 @@ struct PspTexture {
   int height = 0;
   int pot_w = 0;
   int pot_h = 0;
+  bool swizzled = false;
   bool used = false;
 };
 
@@ -77,6 +78,26 @@ int NextPow2(int v) {
   int p = 1;
   while (p < v) p <<= 1;
   return p;
+}
+
+// PSP GU 的 16 字节块 swizzle（SDL_render_psp 同款）。
+void SwizzlePsp(u32* dst, const u32* src, int width, int height) {
+  const int rowblocks = width >> 2;
+  const int rowblocksadd = (rowblocks - 1) << 7;
+  unsigned blockaddress = 0;
+  const u32* s = src;
+  for (int j = 0; j < height; ++j) {
+    u32* block = reinterpret_cast<u32*>(reinterpret_cast<u8*>(dst) + blockaddress);
+    for (int i = 0; i < rowblocks; ++i) {
+      block[0] = *s++;
+      block[1] = *s++;
+      block[2] = *s++;
+      block[3] = *s++;
+      block += 32;
+    }
+    blockaddress += 16;
+    if ((j & 7) == 7) blockaddress += rowblocksadd;
+  }
 }
 
 void* AllocAligned16(size_t size) {
@@ -167,6 +188,17 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
                      static_cast<size_t>(tex->height / 2) * static_cast<size_t>(pw);
     GpuTrace("tex_center", static_cast<int>(slot.data[c] & 0xFFFFFFu));
   }
+  if (pw >= 16 || ph >= 16) {
+    u32* sw = static_cast<u32*>(AllocAligned16(static_cast<size_t>(pw) * ph * 4));
+    if (sw != nullptr) {
+      SwizzlePsp(sw, slot.data, pw, ph);
+      std::free(slot.data);
+      slot.data = sw;
+      slot.swizzled = true;
+    }
+  } else {
+    slot.swizzled = false;
+  }
   sceKernelDcacheWritebackAll();
 
   slot.source = tex->rgba8;
@@ -235,7 +267,7 @@ void DrawImage(const DrawCmd& cmd) {
   ScissorFromRect(cmd.clip);
 
   sceGuEnable(GU_TEXTURE_2D);
-  sceGuTexMode(GU_PSM_8888, 0, 0, 0);
+  sceGuTexMode(GU_PSM_8888, 0, 0, pt->swizzled ? 1 : 0);
   sceGuTexImage(0, pt->pot_w, pt->pot_h, pt->pot_w, pt->data);
   sceGuTexFlush();
   sceGuTexSync();
