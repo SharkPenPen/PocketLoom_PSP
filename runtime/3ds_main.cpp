@@ -12,16 +12,29 @@
 #include "runtime/game.h"
 #include "runtime/p3d.h"
 
+static void Log3ds(const char* text) {
+  std::FILE* f = std::fopen("sdmc:/pl_3ds.log", "ab");
+  if (f == nullptr) return;
+  std::fprintf(f, "%s\n", text);
+  std::fclose(f);
+}
+
 int main() {
+  std::remove("sdmc:/pl_3ds.log");
+  Log3ds("start");
   romfsInit();
+  Log3ds("romfs ok");
   eng::PlatformConfig cfg;
   cfg.width = 400;
   cfg.height = 240;
   cfg.title = "PocketLoom";
+  Log3ds("before platform");
   if (!eng::Platform().init(cfg)) {
+    Log3ds("platform fail");
     romfsExit();
     return 1;
   }
+  Log3ds("platform ok");
   if (!eng::RenderBackend().init()) {
     eng::Platform().shutdown();
     romfsExit();
@@ -31,11 +44,13 @@ int main() {
 
   std::FILE* f = std::fopen("romfs:/game.p3d", "rb");
   if (f == nullptr) {
+    Log3ds("p3d open fail");
     eng::RenderBackend().shutdown();
     eng::Platform().shutdown();
     romfsExit();
     return 3;
   }
+  Log3ds("p3d open ok");
   std::fseek(f, 0, SEEK_END);
   const long file_size = std::ftell(f);
   std::fseek(f, 0, SEEK_SET);
@@ -48,6 +63,7 @@ int main() {
   r4::P3d p3d;
   std::string err;
   if (!r4::P3dLoad(p3d_bytes.data(), p3d_bytes.size(), &p3d, &err)) {
+    Log3ds(("p3d fail " + err).c_str());
     eng::RenderBackend().shutdown();
     eng::Platform().shutdown();
     romfsExit();
@@ -71,6 +87,7 @@ int main() {
   r4::Game game;
   game.SetSavePath("sdmc:/3ds/PocketLoom/save0.dat");
   if (!game.Init(p3d, &err)) {
+    Log3ds(("game fail " + err).c_str());
     eng::RenderBackend().shutdown();
     eng::Platform().shutdown();
     romfsExit();
@@ -81,6 +98,7 @@ int main() {
   dl.ResetScreenSizes();
   dl.SetScreenSize(400, 240);
 
+  Log3ds("loop enter");
   while (aptMainLoop() && !eng::Platform().should_quit()) {
     eng::Platform().begin_frame();
     eng::Platform().pump_events();
