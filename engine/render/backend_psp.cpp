@@ -56,22 +56,8 @@ PspTexture g_textures[kMaxTexture];
 bool g_ready = false;
 
 void GpuTrace(const char* tag, int value) {
-  char buf[96];
-  int n = 0;
-  while (tag[n] != '\0' && n < 60) { buf[n] = tag[n]; ++n; }
-  if (value >= 0) {
-    buf[n++] = ' ';
-    char d[12];
-    int dn = 0;
-    if (value == 0) d[dn++] = '0';
-    while (value > 0) { d[dn++] = static_cast<char>('0' + value % 10); value /= 10; }
-    while (dn > 0) buf[n++] = d[--dn];
-  }
-  buf[n++] = '\n';
-  const SceUID fd = sceIoOpen("ms0:/PL_GPU.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
-  if (fd < 0) return;
-  sceIoWrite(fd, buf, static_cast<unsigned int>(n));
-  sceIoClose(fd);
+  (void)tag;
+  (void)value;
 }
 
 int NextPow2(int v) {
@@ -265,7 +251,7 @@ void DrawImage(const DrawCmd& cmd) {
   ScissorFromRect(cmd.clip);
 
   sceGuEnable(GU_TEXTURE_2D);
-  sceGuTexMode(GU_PSM_8888, 0, 0, pt->swizzled ? 1 : 0);
+  sceGuTexMode(GU_PSM_8888, 0, 0, 0);
   sceGuTexImage(0, pt->pot_w, pt->pot_h, pt->pot_w, pt->data);
   sceGuTexFlush();
   sceGuTexSync();

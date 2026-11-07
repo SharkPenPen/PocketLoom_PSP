@@ -36,20 +36,14 @@ constexpr const char* kDefaultP3d = "ms0:/PSP/GAME/PocketLoom/game.p3d";
 constexpr const char* kSaveDir = "ms0:/PSP/SAVEDATA/PocketLoom";
 constexpr const char* kSavePath = "ms0:/PSP/SAVEDATA/PocketLoom/save0.dat";
 constexpr const char* kReportPath = "ms0:/PSP/SAVEDATA/PocketLoom/report.txt";
-constexpr const char* kTracePath = "ms0:/PL_ERR.txt";
 
 void Trace(const char* tag, const char* text) {
-  const SceUID fd = sceIoOpen(kTracePath, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
-  if (fd < 0) return;
-  sceIoWrite(fd, tag, static_cast<unsigned int>(std::strlen(tag)));
-  if (text != nullptr) sceIoWrite(fd, text, static_cast<unsigned int>(std::strlen(text)));
-  sceIoWrite(fd, "\n", 1);
-  sceIoClose(fd);
+  (void)tag;
+  (void)text;
 }
 void TraceInt(const char* tag, int value) {
-  char buf[96];
-  std::snprintf(buf, sizeof(buf), "%s %d", tag, value);
-  Trace(buf, nullptr);
+  (void)tag;
+  (void)value;
 }
 
 bool ReadFile(const char* path, std::vector<unsigned char>* out) {
