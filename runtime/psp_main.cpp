@@ -177,10 +177,12 @@ int main(int argc, char** argv) {
     const r4::Image& img = p3d.images[i];
     texture_data[static_cast<size_t>(i)] = img.rgba;
     if (i == 1 && texture_data[1].size() >= 4) {
-      TraceInt("img1_r", texture_data[1][0]);
-      TraceInt("img1_g", texture_data[1][1]);
-      TraceInt("img1_b", texture_data[1][2]);
-      TraceInt("img1_a", texture_data[1][3]);
+      const size_t c = (static_cast<size_t>(img.width) / 2 +
+                        static_cast<size_t>(img.height) / 2 * static_cast<size_t>(img.width)) * 4;
+      TraceInt("img1_cr", texture_data[1][c + 0]);
+      TraceInt("img1_cg", texture_data[1][c + 1]);
+      TraceInt("img1_cb", texture_data[1][c + 2]);
+      TraceInt("img1_ca", texture_data[1][c + 3]);
     }
     textures[i] = eng::TextureCreate(texture_data[static_cast<size_t>(i)].data(),
                                      img.width, img.height);
