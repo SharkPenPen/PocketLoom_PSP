@@ -513,13 +513,14 @@ bool ReadUiElement(Reader& r, UiElementData* e) {
   e->only_if_save = r.U8() != 0;
   const uint16_t item_n = r.U16();
   if (!r.ok || item_n > 1024) return false;
-  e->items.resize(item_n);
-  for (uint16_t i = 0; i < item_n; ++i) e->items[i] = r.Str();
+  e->items.reserve(item_n);
+  for (uint16_t i = 0; i < item_n; ++i) e->items.emplace_back(r.Str());
   const uint16_t cn = r.U16();
   if (!r.ok || cn > 4096) return false;
-  e->children.resize(cn);
+  e->children.reserve(cn);
   for (uint16_t i = 0; i < cn; ++i) {
-    if (!ReadUiElement(r, &e->children[i])) return false;
+    e->children.emplace_back();
+    if (!ReadUiElement(r, &e->children.back())) return false;
   }
   return r.ok;
 }
@@ -535,9 +536,10 @@ bool ReadUiScreen(Reader& r, UiScreenData* s) {
   s->fade_out_frames = r.I32();
   const uint16_t n = r.U16();
   if (!r.ok || n > 4096) return false;
-  s->elements.resize(n);
+  s->elements.reserve(n);
   for (uint16_t i = 0; i < n; ++i) {
-    if (!ReadUiElement(r, &s->elements[i])) return false;
+    s->elements.emplace_back();
+    if (!ReadUiElement(r, &s->elements.back())) return false;
   }
   return r.ok;
 }
@@ -674,15 +676,17 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
       return false;
     }
   }
+  PT_MARK("transitions_ok");
   if (version >= 29) {
     const uint32_t ac = r.U32();
     if (!r.ok || ac > 1024) {
       SetErr(error, "p3d: bad audio count");
       return false;
     }
-    p.audio.resize(ac);
+    p.audio.reserve(ac);
     for (uint32_t i = 0; i < ac; ++i) {
-      AudioClip& a = p.audio[i];
+      p.audio.emplace_back();
+      AudioClip& a = p.audio.back();
       a.id = r.Str();
       const uint32_t n = r.U32();
       if (!r.ok || n > (1u << 26)) {
@@ -724,9 +728,11 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
       SetErr(error, "p3d: bad ui screen count");
       return false;
     }
-    p.ui_screens.resize(sn);
+    PT_MARK("ui_reserved");
+    p.ui_screens.reserve(sn);
     for (uint16_t i = 0; i < sn; ++i) {
-      if (!ReadUiScreen(r, &p.ui_screens[i])) {
+      p.ui_screens.emplace_back();
+      if (!ReadUiScreen(r, &p.ui_screens.back())) {
         SetErr(error, "p3d: bad ui screen");
         return false;
       }
