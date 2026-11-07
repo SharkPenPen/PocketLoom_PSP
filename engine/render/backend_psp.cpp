@@ -192,17 +192,7 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
                       static_cast<size_t>(tex->height / 2) * static_cast<size_t>(tex->width);
     GpuTrace("src_alpha", static_cast<int>(tex->rgba8[sc * 4 + 3]));
   }
-  if (pw >= 16 || ph >= 16) {
-    u32* sw = static_cast<u32*>(AllocAligned16(static_cast<size_t>(pw) * ph * 4));
-    if (sw != nullptr) {
-      SwizzlePsp(sw, slot.data, pw, ph);
-      std::free(slot.data);
-      slot.data = sw;
-      slot.swizzled = true;
-    }
-  } else {
-    slot.swizzled = false;
-  }
+  slot.swizzled = false;
   sceKernelDcacheWritebackAll();
 
   slot.source = tex->rgba8;
