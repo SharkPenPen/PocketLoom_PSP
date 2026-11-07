@@ -5,6 +5,31 @@
 #include <cstring>
 #include <fstream>
 
+#if defined(__psp__)
+#include <pspiofilemgr.h>
+static void PspTrace(const char* tag, unsigned n) {
+  char b[96];
+  int i = 0;
+  while (tag[i] != '\0' && i < 40) { b[i] = tag[i]; ++i; }
+  b[i++] = ' ';
+  char d[12];
+  int dn = 0;
+  if (n == 0) d[dn++] = '0';
+  while (n > 0) { d[dn++] = static_cast<char>('0' + (n % 10)); n /= 10; }
+  while (dn > 0) b[i++] = d[--dn];
+  b[i++] = '\n';
+  const SceUID fd = sceIoOpen("ms0:/PL_TRACE.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+  if (fd < 0) return;
+  sceIoWrite(fd, b, static_cast<unsigned int>(i));
+  sceIoClose(fd);
+}
+#define PT_MARK(tag) PspTrace(tag, 0)
+#define PT_N(tag, n) PspTrace(tag, static_cast<unsigned>(n))
+#else
+#define PT_MARK(tag) ((void)0)
+#define PT_N(tag, n) ((void)0)
+#endif
+
 namespace r4 {
 
 namespace {
@@ -116,14 +141,19 @@ bool ReadImage(Reader& r, Image* img, std::string* error) {
 }
 
 bool ReadAction(Reader& r, Action* a, std::string* error) {
+  PT_MARK("act_enter");
   a->name = r.Str();
+  PT_MARK("act_name");
   const uint16_t n = r.U16();
+  PT_N("act_n", n);
   if (!r.ok || n > 64) {
     SetErr(error, "p3d: bad action frame count");
     return false;
   }
   a->frames.resize(n);
+  PT_MARK("act_frames_resized");
   for (uint16_t i = 0; i < n; ++i) {
+    PT_N("frame", i);
     AnimFrame& f = a->frames[i];
     f.image = r.I32();
     f.hold = static_cast<int>(r.U16());
@@ -153,6 +183,7 @@ bool ReadAction(Reader& r, Action* a, std::string* error) {
       SetErr(error, "p3d: bad action frame");
       return false;
     }
+    PT_MARK("frame_ok");
   }
   a->fps = r.I32();
   a->loop = (r.U8() != 0);
@@ -164,6 +195,7 @@ bool ReadAction(Reader& r, Action* a, std::string* error) {
     SetErr(error, "p3d: bad action fps");
     return false;
   }
+  PT_MARK("act_done");
   return true;
 }
 
