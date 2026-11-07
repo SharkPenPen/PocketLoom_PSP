@@ -194,7 +194,8 @@ struct VtxColor {
 void DrawImage(const DrawCmd& cmd) {
   const Texture* tex = nullptr;
   PspTexture* pt = nullptr;
-  if (!EnsureTexture(cmd.texture, &tex, &pt)) return;
+  if (!EnsureTexture(cmd.texture, &tex, &pt)) { GpuTrace("tex_fail", static_cast<int>(cmd.texture)); return; }
+  GpuTrace("tex_ok", static_cast<int>(cmd.texture));
 
   const int sw = cmd.src.whole() ? pt->width : static_cast<int>(cmd.src.w);
   const int sh = cmd.src.whole() ? pt->height : static_cast<int>(cmd.src.h);
