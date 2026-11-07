@@ -19,6 +19,23 @@ static void GameTrace(const char* tag) {
   sceIoWrite(fd, "\n", 1);
   sceIoClose(fd);
 }
+static void GameTraceInt(const char* tag, int value) {
+  char buf[96];
+  int n = 0;
+  while (tag[n] != '\0' && n < 60) { buf[n] = tag[n]; ++n; }
+  buf[n++] = ' ';
+  char d[16];
+  int dn = 0;
+  if (value < 0) { buf[n++] = '-'; value = -value; }
+  if (value == 0) d[dn++] = '0';
+  while (value > 0) { d[dn++] = static_cast<char>('0' + value % 10); value /= 10; }
+  while (dn > 0) buf[n++] = d[--dn];
+  buf[n++] = '\n';
+  const SceUID fd = sceIoOpen("ms0:/PL_GAME.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+  if (fd < 0) return;
+  sceIoWrite(fd, buf, static_cast<unsigned int>(n));
+  sceIoClose(fd);
+}
 #else
 #define GameTrace(tag) ((void)0)
 #endif
@@ -113,12 +130,13 @@ int ActionFrameAt(const Action& a, float time, bool* ended) {
   GameTrace("af_enter");
   if (ended != nullptr) *ended = false;
   const int n = static_cast<int>(a.frames.size());
+  GameTraceInt("af_n", n);
   if (n <= 0) {
     if (ended != nullptr) *ended = true;
     return 0;
   }
   const int total = ActionTotalTicks(a);
-  GameTrace("af_total");
+  GameTraceInt("af_total", total);
   if (total <= 0) return 0;
   int tick = static_cast<int>(std::floor(std::max(0.0f, time) * 60.0f));
   GameTrace("af_tick");
