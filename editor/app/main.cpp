@@ -1806,6 +1806,7 @@ void DrawMenuBar() {
     if (ImGui::MenuItem("新建项目...")) RequestAction(PendingAction::kNew);
     if (ImGui::MenuItem("打开项目...")) RequestAction(PendingAction::kOpen);
     if (ImGui::MenuItem("保存", "Ctrl+S", false, g_has_project)) DoSave();
+    if (ImGui::MenuItem("导出 game.p3d", nullptr, false, g_has_project)) DoExportP3d();
     ImGui::Separator();
     if (ImGui::MenuItem("退出")) RequestAction(PendingAction::kExit);
     ImGui::EndMenu();
