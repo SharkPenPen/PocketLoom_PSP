@@ -157,9 +157,16 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
   }
 
   for (int y = 0; y < tex->height; ++y) {
-    std::memcpy(slot.data + static_cast<size_t>(y) * pw,
-                tex->rgba8 + static_cast<size_t>(y) * tex->width * 4,
-                static_cast<size_t>(tex->width) * 4);
+    const u8* srow = tex->rgba8 + static_cast<size_t>(y) * tex->width * 4;
+    u32* drow = slot.data + static_cast<size_t>(y) * pw;
+    for (int x = 0; x < tex->width; ++x) {
+      const u8* s = srow + x * 4;
+      // GU_PSM_8888 的内存序是 A,B,G,R；源是 R,G,B,A。
+      drow[x] = (static_cast<u32>(s[0]) << 24) |
+                (static_cast<u32>(s[1]) << 16) |
+                (static_cast<u32>(s[2]) << 8) |
+                static_cast<u32>(s[3]);
+    }
   }
   if (tex->width > 0 && tex->height > 0) {
     const size_t c = static_cast<size_t>(tex->width / 2) +
