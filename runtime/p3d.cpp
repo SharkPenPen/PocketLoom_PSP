@@ -229,10 +229,11 @@ bool ReadObject(Reader& r, Object* o, std::string* error) {
     SetErr(error, "p3d: bad object action count");
     return false;
   }
-  o->actions.resize(ac);
+  o->actions.reserve(ac);
   PT_MARK("obj_actions_resized");
   for (uint16_t i = 0; i < ac; ++i) {
-    if (!ReadAction(r, &o->actions[i], error)) return false;
+    o->actions.emplace_back();
+    if (!ReadAction(r, &o->actions.back(), error)) return false;
   }
   o->default_action = r.I32();
   const uint16_t rn = r.U16();
