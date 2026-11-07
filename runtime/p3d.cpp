@@ -154,7 +154,7 @@ bool ReadAction(Reader& r, Action* a, std::string* error) {
   PT_MARK("act_frames_reserved");
   for (uint16_t i = 0; i < n; ++i) {
     PT_N("frame", i);
-    a->frames.emplace_back();
+    a->frames.push_back(AnimFrame{});
     AnimFrame& f = a->frames.back();
     f.image = r.I32();
     f.hold = static_cast<int>(r.U16());
