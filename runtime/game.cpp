@@ -292,7 +292,9 @@ void Game::SetScene(int index) {
   const Object* po = FindPlayerObject(*p3d_, s, &player_index);
   if (po != nullptr) {
     player_object_ = player_index;
-    player_.action = po->default_action;
+    int action = po->default_action;
+    if (action < 0 || action >= static_cast<int>(po->actions.size())) action = 0;
+    player_.action = action;
   }
   camera_mode_ = (s.camera_mode == "fixed") ? CameraMode::kFixed
                                                  : CameraMode::kFollow;
@@ -940,7 +942,9 @@ void Game::UpdateAnimation(float dt) {
   const Object& o = p3d_->objects[player_object_];
   if (o.actions.empty()) return;
   if (player_.action < 0 || player_.action >= static_cast<int>(o.actions.size())) {
-    player_.action = o.default_action;
+    int action = o.default_action;
+    if (action < 0 || action >= static_cast<int>(o.actions.size())) action = 0;
+    player_.action = action;
   }
   const Action& a = o.actions[player_.action];
   if (a.frames.empty()) {
