@@ -631,9 +631,11 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
   PT_MARK("images_ok");
   if (!ReadCount(r, &count, 1024, error, "objects")) return false;
   PT_N("objects_count", count);
-  p.objects.resize(count);
-  PT_MARK("objects_resized");
+  p.objects.reserve(count);
+  PT_MARK("objects_reserved");
   for (uint32_t i = 0; i < count; ++i) {
+    p.objects.emplace_back();
+    PT_N("object_emplace", i);
     if (!ReadObject(r, &p.objects[i], error)) return false;
   }
 
