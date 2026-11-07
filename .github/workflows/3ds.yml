@@ -1,0 +1,30 @@
+name: 3ds-hello
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install 3DS tools
+        run: |
+          apt-get update
+          apt-get install -y cmake ninja-build
+          dkp-pacman -S --noconfirm 3ds-dev
+      - name: Configure
+        env:
+          DEVKITPRO: /opt/devkitpro
+        run: |
+          cmake -S tools/3ds-hello -B build/3ds -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=tools/3ds-hello/cmake/toolchain-3ds.cmake
+      - name: Build
+        env:
+          DEVKITPRO: /opt/devkitpro
+        run: cmake --build build/3ds
+      - name: Upload 3dsx
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocketloom-3ds-hello
+          if-no-files-found: error
+          path: build/3ds/bin/pocketloom_3ds_hello.3dsx
