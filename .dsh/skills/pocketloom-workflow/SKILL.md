@@ -254,7 +254,8 @@ demo：samples/bee、samples/platformer、samples/topdown
 - 本机 devkitPro：`D:\GitHud\GameStudio\3DSStudioMini-PGMMV\toolchain\devkitpro`。
 - CMake/Ninja：`D:\GitHud\GameStudio\GBAStudioMini\toolchain\mingw64\bin`。
 - Azahar：`3DSStudioMini-PGMMV\toolchain\azahar\azahar.exe`；截图工具 `3DSStudioMini-PGMMV\tools\shot-window.ps1`。
-- CI：`.github/workflows/3ds.yml`，镜像 `devkitpro/devkitarm:latest`，产物 `pocketloom-3ds-hello`（含 `game_3ds.3dsx`）。
+- CI：`.github/workflows/3ds.yml`，镜像 `devkitpro/devkitarm:latest`，产物 `pocketloom-3ds-hello`（含 `game_3ds.3dsx`、`game_3ds.elf`、`game_3ds.smdh`、`romfs/`）。
+- CIA：用 makerom + bannertool 打包；本机工具在 `3DSStudioMini-PGMMV\toolchain\makerom` / `bannertool`。CIA 实际安装到 Azahar 能启动，标题 `PocketLoom 3DS`；这只验证模拟器安装，不等于真机/FBI。
 - 3DS 主目标：`cmake -S . -B build/3ds-main -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=<repo>/cmake/toolchain-3ds.cmake`，再编 `game_3ds`。
 - 3DS 读 `romfs:/game.p3d`；romfs 由 CMake 从 `samples/bee/bee.p3d` 生成。**不要用 `P3dLoadFile` 读 romfs**，用 `fopen/fread` + `P3dLoad(bytes)`。
 - `runtime/3ds_main.cpp` 已跑 `Game::Init/Update/Render`；后端 `backend_citro.cpp` 已有纹理上传/绘制，Azahar 已显示地图、蜜蜂、玩家。
