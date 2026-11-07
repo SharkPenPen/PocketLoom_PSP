@@ -21,6 +21,7 @@
 #include <pspgu.h>
 #include <pspgum.h>
 #include <pspkernel.h>
+#include <pspiofilemgr.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -51,6 +52,25 @@ struct PspTexture {
 
 PspTexture g_textures[kMaxTexture];
 bool g_ready = false;
+
+void GpuTrace(const char* tag, int value) {
+  char buf[96];
+  int n = 0;
+  while (tag[n] != '\0' && n < 60) { buf[n] = tag[n]; ++n; }
+  if (value >= 0) {
+    buf[n++] = ' ';
+    char d[12];
+    int dn = 0;
+    if (value == 0) d[dn++] = '0';
+    while (value > 0) { d[dn++] = static_cast<char>('0' + value % 10); value /= 10; }
+    while (dn > 0) buf[n++] = d[--dn];
+  }
+  buf[n++] = '\n';
+  const SceUID fd = sceIoOpen("ms0:/PL_GPU.txt", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+  if (fd < 0) return;
+  sceIoWrite(fd, buf, static_cast<unsigned int>(n));
+  sceIoClose(fd);
+}
 
 int NextPow2(int v) {
   int p = 1;
@@ -278,6 +298,7 @@ void PspSubmit(const DrawList& dl) {
     return;
   }
   if (!g_ready) return;
+  GpuTrace("submit_enter", dl.count());
 
   sceGuStart(GU_DIRECT, g_list);
 
@@ -293,26 +314,36 @@ void PspSubmit(const DrawList& dl) {
   ResetStates();
 
   for (int i = 0; i < dl.count(); ++i) {
+    GpuTrace("cmd", i);
     const DrawCmd& cmd = dl.cmd(i);
     switch (cmd.kind) {
       case DrawCmdKind::kClear:
+        GpuTrace("clear", -1);
         sceGuScissor(0, 0, kScreenW, kScreenH);
         sceGuClearColor(ToGuColor(cmd.color));
         sceGuClear(GU_COLOR_BUFFER_BIT);
         break;
       case DrawCmdKind::kRect:
+        GpuTrace("rect", -1);
         DrawRect(cmd);
         break;
       case DrawCmdKind::kImage:
+        GpuTrace("image", -1);
         DrawImage(cmd);
         break;
     }
+    GpuTrace("cmd_done", i);
   }
 
+  GpuTrace("finish", -1);
   sceGuFinish();
+  GpuTrace("sync", -1);
   sceGuSync(0, 0);
+  GpuTrace("vblank", -1);
   sceDisplayWaitVblankStart();
+  GpuTrace("swap", -1);
   sceGuSwapBuffers();
+  GpuTrace("submit_done", -1);
 }
 
 void PspReleaseTexture(TextureId id) {
