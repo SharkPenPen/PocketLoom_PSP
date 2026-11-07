@@ -254,7 +254,7 @@ int main(int argc, char** argv) {
                    textures[1], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
       if (textures[2] != 0) {
         dl.DrawImage(eng::Rect2{eng::Vec2{200.0f, 100.0f}, eng::Vec2{64.0f, 64.0f}},
-                     textures[2], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
+                     textures[2], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 8, 8));
       }
       TraceInt("dl_after", dl.count());
     }
