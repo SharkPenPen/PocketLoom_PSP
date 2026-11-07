@@ -161,6 +161,9 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
                 tex->rgba8 + static_cast<size_t>(y) * tex->width * 4,
                 static_cast<size_t>(tex->width) * 4);
   }
+  for (size_t i = 0; i < static_cast<size_t>(pw) * static_cast<size_t>(ph); ++i) {
+    slot.data[i] |= 0xFF000000u;
+  }
   sceKernelDcacheWritebackAll();
 
   slot.source = tex->rgba8;
