@@ -1976,6 +1976,10 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
     }
     const int off_x = act != nullptr ? act->offset_x : 0;
     const int off_y = act != nullptr ? act->offset_y : 0;
+    GameTraceInt("draw_origin_x", origin_x);
+    GameTraceInt("draw_origin_y", origin_y);
+    GameTraceInt("draw_off_x", off_x);
+    GameTraceInt("draw_off_y", off_y);
     const int tex_w = (o.image >= 0 && o.image < static_cast<int>(p3d_->images.size()))
                           ? p3d_->images[o.image].width
                           : fw;
