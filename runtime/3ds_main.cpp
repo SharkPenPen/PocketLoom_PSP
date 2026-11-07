@@ -109,8 +109,6 @@ int main() {
 
     dl.Reset();
     game.Render(dl, textures, texture_count);
-    dl.DrawRect(eng::Rect2{eng::Vec2{8.0f, 8.0f}, eng::Vec2{12.0f, 12.0f}},
-                0xFF00FF00u);
     eng::RenderBackend().submit(dl);
     eng::Platform().end_frame();
   }
