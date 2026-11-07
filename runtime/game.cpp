@@ -181,8 +181,11 @@ bool Game::Init(const P3d& p3d, std::string* error) {
   GameTrace("init_after_scene");
   if (p3d.title_ui >= 0 &&
       p3d.title_ui < static_cast<int>(p3d.ui_screens.size())) {
+    GameTrace("title_enter");
     OpenUiById(p3d.ui_screens[static_cast<size_t>(p3d.title_ui)].id);
+    GameTrace("title_ok");
   }
+  GameTrace("init_return");
   return true;
 }
 
