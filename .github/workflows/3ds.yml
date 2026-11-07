@@ -16,8 +16,8 @@ jobs:
         env:
           DEVKITPRO: /opt/devkitpro
         run: |
-          cmake -S tools/3ds-hello -B build/3ds -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=tools/3ds-hello/cmake/toolchain-3ds.cmake
+          cmake -S tools/3ds-hello -B build/3ds -G "Unix Makefiles" \
+            -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/tools/3ds-hello/cmake/toolchain-3ds.cmake
       - name: Build
         env:
           DEVKITPRO: /opt/devkitpro
