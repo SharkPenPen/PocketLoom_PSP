@@ -2001,7 +2001,7 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
                                y - camera_y_ - static_cast<float>(origin_y) +
                                    static_cast<float>(off_y)},
                      eng::Vec2{static_cast<float>(fw), static_cast<float>(fh)}},
-                 tex, 0xFFFFFFFFu, src, flags);
+                 tex, 0xFFFFFFFFu, eng::TexRegion::Whole(), flags);
   };
 
   for (int i = 0; i < static_cast<int>(s.objects.size()); ++i) {
