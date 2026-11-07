@@ -622,7 +622,7 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
     SetErr(error, "p3d: unsupported version");
     return false;
   }
-  P3d p;
+  P3d& p = *out;
   p.initial_scene = r.I32();
   p.view_w = r.I32();
   p.view_h = r.I32();
@@ -741,7 +741,6 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
       }
     }
   }
-  std::swap(*out, p);
   return true;
 }
 
