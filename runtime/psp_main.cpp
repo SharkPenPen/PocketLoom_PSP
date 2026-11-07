@@ -91,6 +91,7 @@ void WriteReport(const r4::Game& game, int frames, const char* p3d_path) {
 }  // namespace
 
 int main(int argc, char** argv) {
+  Trace("main_enter", nullptr);
   std::string p3d_path = kDefaultP3d;
   int frames_limit = 0;
 
@@ -103,6 +104,7 @@ int main(int argc, char** argv) {
   }
 
   std::vector<unsigned char> bytes;
+  Trace("before_read", p3d_path.c_str());
   if (!ReadFile(p3d_path.c_str(), &bytes)) {
     // 兼容直接放 EBOOT 旁边的情况
     if (!ReadFile("game.p3d", &bytes)) {
@@ -112,6 +114,7 @@ int main(int argc, char** argv) {
     p3d_path = "game.p3d";
   }
 
+  Trace("read_ok", nullptr);
   r4::P3d p3d;
   std::string err;
   bool loaded = false;
@@ -130,17 +133,21 @@ int main(int argc, char** argv) {
     return 3;
   }
 
+  Trace("load_ok", nullptr);
   // p3d 是左下原点、y 向上；引擎内部是屏幕系，这里翻一次。
   r4::MirrorSceneYUp(p3d, p3d.view_h);
+  Trace("mirror_ok", nullptr);
 
   eng::PlatformConfig cfg;
   cfg.title = "PocketLoom";
   cfg.width = 480;
   cfg.height = 272;
   if (!eng::Platform().init(cfg)) {
+    Trace("platform_init_failed", nullptr);
     std::fprintf(stderr, "psp: platform init failed\n");
     return 4;
   }
+  Trace("platform_ok", nullptr);
   if (!eng::RenderBackend().init()) {
     std::fprintf(stderr, "psp: render init failed\n");
     eng::Platform().shutdown();
@@ -162,7 +169,9 @@ int main(int argc, char** argv) {
 
   r4::Game game;
   game.SetSavePath(kSavePath);
+  Trace("game_before_init", nullptr);
   if (!game.Init(p3d, &err)) {
+    Trace("game_init_failed: ", err.c_str());
     std::fprintf(stderr, "psp: %s\n", err.c_str());
     for (int i = 0; i < texture_count; ++i) {
       if (textures[i] != 0) eng::TextureDestroy(textures[i]);
