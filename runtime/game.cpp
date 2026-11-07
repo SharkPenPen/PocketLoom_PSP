@@ -1951,6 +1951,7 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
     GameTraceInt("draw_fh", o.frame_h);
     if (o.image < 0 || o.image >= texture_count) return;
     const eng::TextureId tex = textures[o.image];
+    GameTraceInt("draw_tex", static_cast<int>(tex));
     if (tex == 0) return;
     int frame_no = 0;
     const int fw = std::max(1, o.frame_w);
