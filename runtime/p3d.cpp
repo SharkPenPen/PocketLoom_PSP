@@ -221,12 +221,15 @@ bool ReadObject(Reader& r, Object* o, std::string* error) {
   o->attack_h = r.I32();
   o->speed = r.I32();
   o->gravity = r.I32();
+  PT_MARK("obj_header");
   const uint16_t ac = r.U16();
+  PT_N("obj_ac", ac);
   if (!r.ok || ac > 32) {
     SetErr(error, "p3d: bad object action count");
     return false;
   }
   o->actions.resize(ac);
+  PT_MARK("obj_actions_resized");
   for (uint16_t i = 0; i < ac; ++i) {
     if (!ReadAction(r, &o->actions[i], error)) return false;
   }
@@ -599,6 +602,7 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
     SetErr(error, "p3d: null input");
     return false;
   }
+  PT_MARK("load_enter");
   Reader r{data, size, 0, true};
   if (r.U32() != kP3dMagic) {
     SetErr(error, "p3d: bad magic");
@@ -624,8 +628,11 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
     if (!ReadImage(r, &p.images[i], error)) return false;
   }
 
+  PT_MARK("images_ok");
   if (!ReadCount(r, &count, 1024, error, "objects")) return false;
+  PT_N("objects_count", count);
   p.objects.resize(count);
+  PT_MARK("objects_resized");
   for (uint32_t i = 0; i < count; ++i) {
     if (!ReadObject(r, &p.objects[i], error)) return false;
   }
