@@ -137,7 +137,9 @@ bool ReadImage(Reader& r, Image* img, std::string* error) {
   const size_t bytes = static_cast<size_t>(img->width) *
                        static_cast<size_t>(img->height) * 4u;
   img->rgba.resize(bytes);
-  return r.Bytes(img->rgba.data(), bytes);
+  const bool ok = r.Bytes(img->rgba.data(), bytes);
+  if (ok && !img->rgba.empty()) PT_N("img_first", img->rgba[0]);
+  return ok;
 }
 
 bool ReadAction(Reader& r, Action* a, std::string* error) {
