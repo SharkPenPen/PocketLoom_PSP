@@ -1944,6 +1944,10 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
   auto draw_object = [&](int obj_index, float x, float y, int action_index,
                           int frame_index, bool flip_x) {
     GameTraceInt("draw_obj", obj_index);
+    GameTraceInt("draw_x", static_cast<int>(x));
+    GameTraceInt("draw_y", static_cast<int>(y));
+    GameTraceInt("cam_x", static_cast<int>(camera_x_));
+    GameTraceInt("cam_y", static_cast<int>(camera_y_));
     if (obj_index < 0 || obj_index >= static_cast<int>(p3d_->objects.size())) return;
     const Object& o = p3d_->objects[obj_index];
     GameTraceInt("draw_img", o.image);
