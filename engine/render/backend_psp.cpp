@@ -161,6 +161,11 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
                 tex->rgba8 + static_cast<size_t>(y) * tex->width * 4,
                 static_cast<size_t>(tex->width) * 4);
   }
+  if (tex->width > 0 && tex->height > 0) {
+    const size_t c = static_cast<size_t>(tex->width / 2) +
+                     static_cast<size_t>(tex->height / 2) * static_cast<size_t>(pw);
+    GpuTrace("tex_center", static_cast<int>(slot.data[c] & 0xFFFFFFu));
+  }
   sceKernelDcacheWritebackAll();
 
   slot.source = tex->rgba8;
