@@ -1,6 +1,7 @@
 // PocketLoom 3DS stage 2: read p3d and run Game update/render (clear/rect backend).
 #include <3ds.h>
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -28,14 +29,31 @@ int main() {
   }
   r4::AudioInit();
 
-  r4::P3d p3d;
-  std::string err;
-  if (!r4::P3dLoadFile("romfs:/game.p3d", &p3d, &err)) {
+  std::FILE* f = std::fopen("romfs:/game.p3d", "rb");
+  if (f == nullptr) {
     eng::RenderBackend().shutdown();
     eng::Platform().shutdown();
     romfsExit();
     return 3;
   }
+  std::fseek(f, 0, SEEK_END);
+  const long file_size = std::ftell(f);
+  std::fseek(f, 0, SEEK_SET);
+  if (file_size <= 0) { std::fclose(f); eng::RenderBackend().shutdown(); eng::Platform().shutdown(); romfsExit(); return 3; }
+  std::vector<unsigned char> p3d_bytes(static_cast<size_t>(file_size));
+  const size_t got = std::fread(p3d_bytes.data(), 1, p3d_bytes.size(), f);
+  std::fclose(f);
+  if (got != p3d_bytes.size()) { eng::RenderBackend().shutdown(); eng::Platform().shutdown(); romfsExit(); return 3; }
+
+  r4::P3d p3d;
+  std::string err;
+  if (!r4::P3dLoad(p3d_bytes.data(), p3d_bytes.size(), &p3d, &err)) {
+    eng::RenderBackend().shutdown();
+    eng::Platform().shutdown();
+    romfsExit();
+    return 3;
+  }
+  r4::MirrorSceneYUp(p3d, 240);
 
   static std::vector<std::vector<unsigned char>> texture_data;
   eng::TextureId textures[32] = {};
