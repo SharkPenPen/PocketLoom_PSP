@@ -192,7 +192,7 @@ runtime 不直接依赖 `std::filesystem` 和平台 API。
 - 当前 p3d v91；
 - 同一份 demo 数据。
 
-当前 3DS 已落地：`engine/platform/_3ds/platform_3ds.cpp`、`engine/render/backend_citro.cpp`、`runtime/3ds_main.cpp`、`runtime/audio_3ds.cpp`、`cmake/toolchain-3ds.cmake`、`cmake/3dsx.cmake`、`tools/3ds-hello/`。3DS 主工程已能读 romfs 的 p3d，跑 `Game::Init/Update/Render`，在 Azahar 显示地图/蜜蜂/玩家；纹理通道顺序是实测调出来的，当前 swizzle 写 `R,B,G,A`，改前先截图对比。
+当前 3DS 已落地：`engine/platform/_3ds/platform_3ds.cpp`、`engine/render/backend_citro.cpp`、`runtime/3ds_main.cpp`、`runtime/audio_3ds.cpp`、`cmake/toolchain-3ds.cmake`、`cmake/3dsx.cmake`、`tools/3ds-hello/`。3DS 主工程已能读 romfs 的 p3d，跑 `Game::Init/Update/Render`，在 Azahar 显示地图/蜜蜂/玩家；纹理通道/8×8 块用 tex3ds 官方 foursome 表（A,B,G,R），不要再改回简化 Morton8；改前先跑 16×16 色块截图。
 
 ## 9. PSP 预留
 
@@ -258,7 +258,7 @@ demo：samples/bee、samples/platformer、samples/topdown
 - 3DS 主目标：`cmake -S . -B build/3ds-main -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=<repo>/cmake/toolchain-3ds.cmake`，再编 `game_3ds`。
 - 3DS 读 `romfs:/game.p3d`；romfs 由 CMake 从 `samples/bee/bee.p3d` 生成。**不要用 `P3dLoadFile` 读 romfs**，用 `fopen/fread` + `P3dLoad(bytes)`。
 - `runtime/3ds_main.cpp` 已跑 `Game::Init/Update/Render`；后端 `backend_citro.cpp` 已有纹理上传/绘制，Azahar 已显示地图、蜜蜂、玩家。
-- 纹理字节序当前是 `R,B,G,A`（实测）；改 `engine/render/swizzle.cpp` 必须截图对比，不要凭理论。
+- 纹理转换已改成 tex3ds 官方 swizzle：8×8 foursome 表 + 成对交换，通道 A,B,G,R；16×16 色块已验证四色正确。不要再手写简化 Morton8，也不要直接用 `C3D_TexUpload`（会条纹）。
 - `runtime/audio_3ds.cpp` 已接 ndsp；没有 `sdmc:/3ds/dspfirm.cdc` 时会静音。
 - 输入：平台层映射已写；模拟器自动注入按键受 Windows 前台锁影响，**真实按键验收仍未完成**。
 - 本机 Windows 编 devkitARM 会遇到临时文件/对象写权限；CI 是可靠验证路径，别把本机失败当代码失败。

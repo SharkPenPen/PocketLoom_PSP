@@ -68,20 +68,6 @@ int main() {
                                      p3d.images[static_cast<size_t>(i)].height);
   }
 
-  static unsigned char test_rgba[16 * 16 * 4];
-  for (int y = 0; y < 16; ++y) {
-    for (int x = 0; x < 16; ++x) {
-      unsigned char* p = &test_rgba[(y * 16 + x) * 4];
-      const bool right = x >= 8;
-      const bool bottom = y >= 8;
-      p[0] = right ? 0 : 255;   // R
-      p[1] = bottom ? 0 : 255;  // G
-      p[2] = (!right && bottom) ? 255 : 0;  // B
-      p[3] = 255;
-    }
-  }
-  const eng::TextureId test_tex = eng::TextureCreate(test_rgba, 16, 16);
-
   r4::Game game;
   game.SetSavePath("sdmc:/3ds/PocketLoom/save0.dat");
   if (!game.Init(p3d, &err)) {
@@ -105,10 +91,6 @@ int main() {
 
     dl.Reset();
     game.Render(dl, textures, texture_count);
-    if (test_tex != 0) {
-      dl.DrawImage(eng::Rect2{eng::Vec2{10.0f, 10.0f}, eng::Vec2{64.0f, 64.0f}},
-                   test_tex, 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
-    }
     eng::RenderBackend().submit(dl);
     eng::Platform().end_frame();
   }
