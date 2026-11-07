@@ -237,6 +237,7 @@ void DrawImage(const DrawCmd& cmd) {
   sceGuEnable(GU_TEXTURE_2D);
   sceGuTexMode(GU_PSM_8888, 0, 0, 0);
   sceGuTexImage(0, pt->pot_w, pt->pot_h, pt->pot_w, pt->data);
+  sceGuTexFlush();
   sceGuTexSync();
   sceGuColor(color);
   sceGuDrawArray(GU_TRIANGLE_STRIP,
