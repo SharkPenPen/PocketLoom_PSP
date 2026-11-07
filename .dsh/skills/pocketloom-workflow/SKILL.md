@@ -192,6 +192,8 @@ runtime 不直接依赖 `std::filesystem` 和平台 API。
 - 当前 p3d v91；
 - 同一份 demo 数据。
 
+当前 3DS 已落地：`engine/platform/_3ds/platform_3ds.cpp`、`engine/render/backend_citro.cpp`、`runtime/3ds_main.cpp`、`runtime/audio_3ds.cpp`、`cmake/toolchain-3ds.cmake`、`cmake/3dsx.cmake`、`tools/3ds-hello/`。3DS 主工程已能读 romfs 的 p3d，跑 `Game::Init/Update/Render`，在 Azahar 显示地图/蜜蜂/玩家；纹理通道顺序是实测调出来的，当前 swizzle 写 `R,B,G,A`，改前先截图对比。
+
 ## 9. PSP 预留
 
 - PSP 逻辑分辨率 480×272，和 PC 视口一致。
@@ -208,7 +210,7 @@ runtime 不直接依赖 `std::filesystem` 和平台 API。
   - `cmake/toolchain-psp.cmake`
   - `tools/build-psp.ps1`
   - 状态与限制见 `docs/21-PSP后端.md`。
-- PSP 骨架尚未在真实 pspdev 上编译验证；不能把“语法检查通过”当成“能跑”。
+- PSP 骨架已在 pspdev CI 编过，并在 PPSSPP 实跑；当前卡在“世界/精灵纹理不可见”，不能当成已收尾。
 - Windows 原生没有官方 pspdev；WSL2 用 `tools/setup-psp-wsl.sh`，构建用 `tools/build-psp-wsl.sh`。
 - 不想用 WSL：走 `.github/workflows/psp.yml`（GitHub Actions）或 Linux 虚拟机；原生 MinPSP 太老，不用。
 
@@ -245,3 +247,73 @@ runtime 不直接依赖 `std::filesystem` 和平台 API。
 demo：samples/bee、samples/platformer、samples/topdown
 3DS 参考：D:\GitHud\GameStudio\3DSStudioMini-PGMMV
 ```
+
+## 13. 当前接入状态（2026-11，交接必读）
+
+### 3DS
+- 本机 devkitPro：`D:\GitHud\GameStudio\3DSStudioMini-PGMMV\toolchain\devkitpro`。
+- CMake/Ninja：`D:\GitHud\GameStudio\GBAStudioMini\toolchain\mingw64\bin`。
+- Azahar：`3DSStudioMini-PGMMV\toolchain\azahar\azahar.exe`；截图工具 `3DSStudioMini-PGMMV\tools\shot-window.ps1`。
+- CI：`.github/workflows/3ds.yml`，镜像 `devkitpro/devkitarm:latest`，产物 `pocketloom-3ds-hello`（含 `game_3ds.3dsx`）。
+- 3DS 主目标：`cmake -S . -B build/3ds-main -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=<repo>/cmake/toolchain-3ds.cmake`，再编 `game_3ds`。
+- 3DS 读 `romfs:/game.p3d`；romfs 由 CMake 从 `samples/bee/bee.p3d` 生成。**不要用 `P3dLoadFile` 读 romfs**，用 `fopen/fread` + `P3dLoad(bytes)`。
+- `runtime/3ds_main.cpp` 已跑 `Game::Init/Update/Render`；后端 `backend_citro.cpp` 已有纹理上传/绘制，Azahar 已显示地图、蜜蜂、玩家。
+- 纹理字节序当前是 `R,B,G,A`（实测）；改 `engine/render/swizzle.cpp` 必须截图对比，不要凭理论。
+- `runtime/audio_3ds.cpp` 已接 ndsp；没有 `sdmc:/3ds/dspfirm.cdc` 时会静音。
+- 输入：平台层映射已写；模拟器自动注入按键受 Windows 前台锁影响，**真实按键验收仍未完成**。
+- 本机 Windows 编 devkitARM 会遇到临时文件/对象写权限；CI 是可靠验证路径，别把本机失败当代码失败。
+
+### PSP
+- PPSSPP：`C:\Users\11747\Documents\PPSSPP\PSP\GAME\PocketLoom`（新 PPSSPP 用 Documents 下的 memstick，不是旧 `ppsspp_win\memstick`）。
+- 启动参数必须带：`--escape-exit --fullscreen <EBOOT.PBP>`。
+- 当前已通：启动、P3dLoad、Game::Init、Update、Render、HUD 文本/分数条、命令提交。
+- 当前未通：世界/精灵纹理不可见。已排除：坐标（debug 矩形在玩家位置可见）、纹理句柄（psp_main 侧 id 有效）、上传缓冲中心像素（非 0）、整图 UV、P3d move/swap。
+- 最接近的线索：DrawList 里对象 Image 命令存在但 backend 只记录到字体纹理 `tex_ok 1`；优先查 DrawList/TextureGet 跨库或对象 Image 是否真正进 backend，不要再从坐标/解析器重头查。
+- 调试痕迹（PL_ERR/PL_TRACE/PL_GAME/PL_GPU/PL_DROP/PL_INPUT、GameTrace/GpuTrace）大量留在源码；发布前必须清。
+- PSP 解析必须保留的 workaround：`Action::frames` 用 `push_back(AnimFrame{})`；nontrivial 容器用 `reserve/emplace`；`DrawList` 放 static；主线程栈 256KB。
+- 参考文档：`docs/21-PSP后端.md`。
+
+### 编辑器
+- `文件 > 导出 game.p3d` 已加；导出到 `<project>/build/game.p3d`，无保存对话框。
+- 编辑器和 `ploom.exe` 导出同一份 p3d；bee 导出哈希与 `samples/bee/bee.p3d` 一致。
+- 鼠标自动化：Windows 前台锁会让 `mouse_event` 只激活窗口；必须先 `AttachThreadInput(GetCurrentThreadId, foregroundTid, true) + SetForegroundWindow + BringWindowToTop + SetFocus`，再点。
+- 已验证鼠标：打开工程、切资源/动画/对象页、加对象实例、加触发器、加 UI 元素、F5 试玩、导出。
+- 未完全验收：地图图块绘制（bee 的 tileset 只有 1 格，点击不改 JSON）、UI 预览视觉细节、触发器编辑后再导出实跑。
+- 面板 CLI：`PocketLoom-Editor.exe --open <project.json> --tool 0..5`，0 场景 1 图块 2 动画 3 对象 4 资源 5 界面。
+
+## 14. 跨对话交接
+
+1. 先 `git status`、`git log --oneline -10`，读本文件和相关 docs。
+2. 先判断轨道；不要同时改 core/editor/3ds/psp。
+3. 改前确认当前数据版本仍是 p3d v91 / PLSV v2。
+4. 大改前提交；调试 trace 不要当正式代码。
+5. 交接时明确写：
+   - 已验证到哪一步；
+   - 目标平台是否有实跑截图；
+   - 已知失败/未验证项；
+   - 下一个最小验证动作。
+6. 不要重新踩这些坑：
+   - PSP 黑屏先从启动/栈查起（已解决，别再怀疑 EBOOT）；
+   - 3DS 不要用 `P3dLoadFile` 读 romfs；
+   - 编辑器鼠标不进画布先修前台锁，不要先改编辑器逻辑；
+   - 改纹理通道顺序必须截图对比。
+
+## 15. 验收矩阵（当前）
+
+| 项 | PC | 3DS/Azahar | PSP/PPSSPP |
+|---|---|---|---|
+| 构建 | 通过 | CI 通过 | CI 通过 |
+| 启动 | 通过 | 通过 | 通过 |
+| HUD | 通过 | 通过 | 通过 |
+| 地图/对象 | 通过 | 通过 | 贴图不可见 |
+| 输入 | 键盘可用 | 代码已接，自动注入未验 | 自动注入未验 |
+| 音频 | 通过 | ndsp 已接，未听验 | 静音占位 |
+| 编辑器导出 | 通过 | 读同一 p3d | 读同一 p3d |
+
+## 16. 下一步优先级
+
+1. PSP：查对象 Image 命令为何没进 backend（DrawList/TextureGet/跨库），保留现有 trace 直到定位。
+2. 3DS：手动按键 + 听音频；校色；补一个双击/长按测试。
+3. 编辑器：用多格 tileset 验证图块绘制；触发器加完导出实跑；UI 元素导出后 3DS/PC 对照。
+4. 清理 PSP/3DS 调试 trace，更新 docs，跑三 demo + capabilities + package。
+
