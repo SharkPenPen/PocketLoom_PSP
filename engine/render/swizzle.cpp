@@ -23,7 +23,7 @@ bool SwizzleRgba8To3ds(const u8* src_rgba, int width, int height, u8* dst,
       const u8* s = src_rgba + (static_cast<usize>(src_y) * static_cast<usize>(width) +
                                 static_cast<usize>(x)) * 4u;
       u8* d = dst + static_cast<usize>(slot) * 4u;
-      d[0] = s[3]; d[1] = s[2]; d[2] = s[1]; d[3] = s[0];
+      d[0] = s[0]; d[1] = s[1]; d[2] = s[2]; d[3] = s[3];
     }
   }
   return true;
