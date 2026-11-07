@@ -195,7 +195,6 @@ void DrawImage(const DrawCmd& cmd) {
   const Texture* tex = nullptr;
   PspTexture* pt = nullptr;
   if (!EnsureTexture(cmd.texture, &tex, &pt)) { GpuTrace("tex_fail", static_cast<int>(cmd.texture)); return; }
-  GpuTrace("tex_ok", static_cast<int>(cmd.texture));
 
   const int sw = cmd.src.whole() ? pt->width : static_cast<int>(cmd.src.w);
   const int sh = cmd.src.whole() ? pt->height : static_cast<int>(cmd.src.h);
@@ -317,6 +316,16 @@ void PspSubmit(const DrawList& dl) {
     GpuTrace("cmd_images", images);
     GpuTrace("cmd_rects", rects);
     GpuTrace("cmd_clears", clears);
+    int non1 = 0, first_non1 = 0;
+    for (int i = 0; i < dl.count(); ++i) {
+      const DrawCmd& c = dl.cmd(i);
+      if (c.kind == DrawCmdKind::kImage && c.texture != 1) {
+        ++non1;
+        if (first_non1 == 0) first_non1 = static_cast<int>(c.texture);
+      }
+    }
+    GpuTrace("img_non1", non1);
+    GpuTrace("img_first_non1", first_non1);
   }
 
   sceGuStart(GU_DIRECT, g_list);
