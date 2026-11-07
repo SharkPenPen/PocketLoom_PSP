@@ -1,11 +1,8 @@
-# 21 - PSP 后端（第一版骨架）
+# 21 - PSP 后端
 
-> 状态：**已在 PPSSPP 1.20.4 实跑**（2026-11-07）。EBOOT 能启动、PARAM.SFO 正确、进入
-> `user_main`，但画面全黑。根因已定位：`eng::DrawList` 实测 **360.9KB**，`psp_main` 原来把它
-> 放在 `main()` 的栈上，而主线程栈只申请了 256KB —— 进循环前就栈溢出。
-> 已改为静态区，**待 CI 重编后复验**。
-> 本机没有 pspdev（也没有 WSL），改 PSP 必须走 GitHub Actions 重编。
-> 目标：先把 PSP 相关源码和构建入口补齐，方便对照 3DS/PC 后端，也方便以后定位问题。
+> 状态（2026-11-08）：PSP 已在 PPSSPP 1.20.4 实跑，地图、图块、蜜蜂、玩家、HUD 都正常显示。
+> 构建走 GitHub Actions（`PSP build`），本机没有 pspdev。
+> 当前剩余：输入/音频验收，存档/UI 细项，调试清理。
 
 ## 1. 文件
 
@@ -14,36 +11,33 @@
 | `engine/platform/_psp/platform_psp.cpp` | 输入、计时、显示模式、日志 |
 | `engine/render/backend_psp.cpp` | PSP GU 后端：clear / rect / image |
 | `runtime/psp_main.cpp` | PSP 播放器入口，读 p3d，跑 Game |
-| `runtime/audio_psp.cpp` | 音频占位（静音） |
+| `runtime/audio_psp.cpp` | 音频占位（当前静音） |
 | `cmake/toolchain-psp.cmake` | pspdev 工具链 |
-| `cmake/psp-package.cmake` | ELF → EBOOT.PBP |
-| `tools/build-psp.ps1` | 一键构建 |
+| `cmake/psp-package.cmake` | ELF -> EBOOT.PBP |
+| `tools/build-psp.ps1` | 一键构建（需要 pspdev） |
 
-## 2. 和 PC 的对应关系
+## 2. 构建与运行
 
-| 职责 | PC | PSP |
-|---|---|---|
-| 平台 | `platform/windows/platform_windows.cpp` | `platform/_psp/platform_psp.cpp` |
-| 渲染 | `render/backend_soft.cpp` | `render/backend_psp.cpp` |
-| 入口 | `runtime/pc_main.cpp` | `runtime/psp_main.cpp` |
-| 音频 | `audio_miniaudio.cpp` | `audio_psp.cpp` |
-| 输出 | 窗口 | GU → EBOOT.PBP |
+- CI：`.github/workflows/psp.yml`，artifact `pocketloom-psp`，含 `game_psp.elf`、`EBOOT.PBP`、`game.p3d`。
+- PPSSPP memstick（新版）：
+  `C:\Users\11747\Documents\PPSSPP\PSP\GAME\PocketLoom`
+- 启动参数必须带：
+  `--escape-exit --fullscreen <EBOOT.PBP>`
+- 判定：窗口标题 `- PocketLoom`；正常退出/截图能看见地图、HUD、精灵。
 
-## 3. 设计约定
+## 3. 渲染约定（重要）
 
-- PSP 只运行 runtime，不运行编辑器。
-- `runtime/game` / `p3d` 不 include PSP 头。
-- PSP 差异只在：
-  - `engine/platform/_psp`
-  - `engine/render/backend_psp.cpp`
-  - `runtime/audio_psp.cpp`
-  - `runtime/psp_main.cpp`
-- 同一份 p3d 跑 PC / 3DS / PSP。
-- GUI 后端只消费 `DrawList`，不直接读 Game 状态。
+- 纹理：RGBA8 源，POT 至少 64；`GU_PSM_8888`。
+- 纹理坐标 **是 texel 坐标，不是 0..1**：
+  `u0=sx, v0=sy, u1=sx+sw, v1=sy+sh`。
+  这是 2026-11-08 世界/精灵不显示的根因；不要再除以 POT。
+- 绘制用 `GU_SPRITES` + `GU_TEXTURE_32BITF | GU_VERTEX_32BITF | GU_TRANSFORM_2D`。
+- 当前纹理数据按线性直拷，`sceGuTexMode(..., 0)`；不要启用 swizzle（除非重新验证）。
+- 顶点颜色走 `sceGuColor`，不要给 sprite 顶点加 `GU_COLOR_8888`。
+- `DrawList` 必须放静态区（`sizeof` 约 360KB，PSP 主线程栈 256KB）。
+- PSP 纹理接收 `rgba8` 源数据；大图先估 32MB 内存，单张超过 1024 拒绝。
 
 ## 4. 路径
-
-默认：
 
 ```text
 ms0:/PSP/GAME/PocketLoom/EBOOT.PBP
@@ -52,170 +46,37 @@ ms0:/PSP/SAVEDATA/PocketLoom/save0.dat
 ms0:/PSP/SAVEDATA/PocketLoom/report.txt
 ```
 
-也支持直接读当前目录的 `game.p3d`，方便 PPSSPP 运行。
+也支持当前目录的 `game.p3d`，方便 PPSSPP。
 
-## 5. 构建
+## 5. 已解决
 
-**Windows 原生没有官方 pspdev。** 官方 Windows 方案是 WSL2 Ubuntu。
-
-### 5.1 WSL2 / Ubuntu
-
-管理员 PowerShell：
-
-```powershell
-wsl --install -d Ubuntu
-```
-
-重启后进 Ubuntu，在仓库目录执行：
-
-```bash
-bash tools/setup-psp-wsl.sh
-bash tools/build-psp-wsl.sh
-```
-
-### 5.2 Linux / CI
-
-```bash
-export PSPDEV="$HOME/pspdev"
-export PATH="$PATH:$PSPDEV/bin"
-cmake -S . -B build/psp-wsl -G Ninja \
-  -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-psp.cmake \
-  -DCMAKE_BUILD_TYPE=Release
-cmake --build build/psp-wsl
-```
-
-### 5.3 产物
-
-```text
-build/psp-wsl/bin/game_psp.elf
-build/psp-wsl/EBOOT.PBP
-```
-
-> 2026-11-06：GitHub Actions 已编过，生成 `game_psp.elf` 和 `EBOOT.PBP`。  
-> 2026-11-07：在 PPSSPP 1.20.4 实跑 —— 启动正常、黑屏，根因是 DrawList 占栈超 256KB（见 §6.9）。
-
-### 5.4 不用 WSL 的方案
-
-1. **GitHub Actions（推荐）**
-   - 仓库已有 `.github/workflows/psp.yml`；
-   - 在 GitHub Actions 手动运行 **PSP build**；
-   - 下载 artifact `pocketloom-psp`，里面有 `game_psp.elf` / `EBOOT.PBP`；
-   - 本机不需要装 WSL 或 pspdev。
-
-2. **Linux 虚拟机**
-   - VirtualBox / Hyper-V 装 Ubuntu；
-   - 在 Ubuntu 里执行 `tools/setup-psp-wsl.sh`；
-   - 仓库通过共享目录挂进去即可。
-
-3. **Docker（Hyper-V 后端）**
-   - Docker Desktop 选 Hyper-V 而不是 WSL2；
-   - 用 Ubuntu + pspdev 容器构建；
-   - 本质上仍然是 Linux 环境。
-
-4. **Windows 原生 MinPSP**
-   - 有旧的 `Minimalist-PSPSDK`；
-   - 太老，不支持当前 C++17/CMake 工程；
-   - 不推荐。
-
-**没有官方 Windows 原生 pspdev。** 不想用 WSL，就走 GitHub Actions 或 Linux VM。
-
-### 5.5 本地 PPSSPP 复跑（Windows，已实测）
-
-`ppsspp_win/PPSSPPWindows64.exe` 是**便携模式**：exe 目录可写时，memstick 根目录是
-`<repo>\ppsspp_win\memstick\PSP\`，**不是** `文档\PPSSPP`。放错地方的表现是 EBOOT
-读完 p3d 失败、直接退回 PPSSPP 菜单（窗口标题没有 `- PocketLoom`）。
-
-```powershell
-# 1) 部署：注意 memstick 下面还要有 PSP 这一层
-$ms = "D:\GitHud\GameStudio\ppsspp_win\memstick\PSP"
-New-Item -ItemType Directory -Force -Path "$ms\GAME\PocketLoom" | Out-Null
-Copy-Item "dist\psp\EBOOT.PBP" "$ms\GAME\PocketLoom\" -Force
-Copy-Item "dist\psp\game.p3d"  "$ms\GAME\PocketLoom\" -Force
-
-# 2) 打开日志（第一次跑完 PPSSPP 才会生成 ini；改完重启 PPSSPP）
-#    $ms\SYSTEM\ppsspp.ini  =>  [Log] FileLogging = True
-#    日志落在 $ms\SYSTEM\DUMP\log.txt
-
-# 3) 跑
-& "D:\GitHud\GameStudio\ppsspp_win\PPSSPPWindows64.exe" "$ms\GAME\PocketLoom\EBOOT.PBP"
-```
-
-判据：
-
-- **跑通**：窗口标题带 `- PocketLoom`，画面有内容，退出后
-  `$ms\SAVEDATA\PocketLoom\report.txt` 里 `ok=1`。
-- **黑屏**：`SYSTEM\DUMP\log.txt` 里出现成片的
-  `E[MEMMAP] Bad memory access ... 00000048 (00000204A8E30048)` —— 这类
-  `0x00~0xA0` 的低地址就是「空/坏指针 + 字段偏移」，优先查栈和控制块。
-- 注意 EBOOT 里没有 `--frames` 的传参途径（PPSSPP 不透传 argv），主循环只能靠关窗口结束，
-  所以 `report.txt` 在正常退出前不会落盘 —— 判断是否活跑要看画面和标题。
+- EBOOT 可启动。
+- 黑屏：DrawList 放栈上导致 256KB 栈溢出，已改 static。
+- P3dLoad / Game::Init / Update 可跑。
+- 世界、图块、对象、HUD 显示。
+- 纹理坐标错误已修（texel，不是 normalized）。
+- 调试 trace 已关闭；不再写 `PL_*.txt`。
 
 ## 6. 已知限制
 
-1. **纹理必须补成 2 的幂**
-   - PSP GU 对纹理尺寸有要求；
-   - `backend_psp.cpp` 会把纹理补边到 POT；
-   - 超过 1024 会被拒绝。
-
-2. **颜色顺序需要真机验证**
-   - 当前按 `0xAABBGGRR` 传给 GU；
-   - 如果红蓝反了，只改 `ToGuColor()`。
-
-3. **p3d 已移除 `<filesystem>`，但文件接口仍用 iostream**
-   - `runtime/p3d.h`、`runtime/game.cpp` 已不再 include `<filesystem>`；
-   - `P3dLoadFile` / `P3dSave` 改用 `std::string` 路径；
-   - PSP 端只用 `P3dLoad(bytes)`，不依赖路径接口；
-   - 如果 psp-g++ 的 iostream 不可用，再把文件接口移到 `sceIo`。
-
-4. **存档路径还没抽象**
-   - 现在 `psp_main` 直接写 `ms0:`；
-   - 以后应统一为 `PlatSavePath()`。
-
-5. **音频是静音占位**
-   - `audio_psp.cpp` 只保证链接；
-   - 后续接 `sceAudio`。
-
-6. **没有 HOME/退出键**
-   - PSP 没有可直接读的 HOME 键；
-   - 目前靠 PPSSPP 停止或 `--frames`。
-
-7. **EBOOT 打包已验证**
-   - GitHub Actions 打出的 `EBOOT.PBP` 能被 PPSSPP 1.20.4 正常识别并启动（标题显示 PocketLoom）。
-
-8. **32MB 内存**
-   - 当前 p3d/纹理还没做预算；
-   - 大图集要先估内存。
-
-9. **栈预算：大对象不能放栈上（2026-11-07 已修）**
-   - `sizeof(DrawList)=369512`（`kMaxCmds=6144` × `sizeof(DrawCmd)=60` ≈ 360.9KB）；
-   - 主线程栈 `PSP_MAIN_THREAD_STACK_SIZE_KB(256)` 只有 256KB，放栈上必溢出；
-   - 现在改成 `static eng::DrawList dl;`（BSS）；
-   - 以后往 `psp_main` / `Game` 里加大缓冲，先按 256KB 算一遍栈账。
-   - 注：这一条是真实隐患，但**不是黑屏的原因** —— 改完仍黑屏，见 §7.2。
+1. **输入**：平台层映射已写，但 PPSSPP 自动注入未完整验收。
+2. **音频**：`audio_psp.cpp` 仍是静音占位。
+3. **存档/UI**：路径已接，完整存档/UI 流程未逐项验收。
+4. **颜色顺序**：当前 `ToGuColor` 直接传；若真机红蓝反，只改这一处。
+5. **内存**：未做 32MB 预算；大图集先算。
+6. **退出**：PSP 没有可直接读的 HOME 键；目前靠 PPSSPP 停止/退出。
 
 ## 7. 下一步
 
-1. ~~安装 pspdev，跑通 `game_psp.elf`~~ → 走 CI 编出 EBOOT（已完成）。
-2. ~~跑通 EBOOT.PBP~~ → PPSSPP 1.20.4 能启动，**黑屏待修**。修复栈之后仍黑屏，2026-11-07 在
-   EBOOT 里打点（写 `ms0:/PL_TRACE.txt`）定位到的实际死点：
-   - `main` 进入、`ReadFile` 读到 32955 字节（bee.p3d）→ 到 `P3dLoad` 之前全部正常；
-   - `P3dLoad` 内：magic / version / images 全过，object 0 的头部字段全过，读到 `ac=2`；
-   - **随后在 object 0 的 actions 解析处直接死掉**：没有错误串、没有后续打点，
-     PPSSPP 进程也随之退出（`psp_main` 的 `return 3` 分支没被执行，说明不是解析返回 false）；
-   - 同一份 `game.p3d` 在 PC 上 `PocketLoom-Play --frames 2` 正常。
-   → 下一个怀疑点：`o->actions.resize(ac)` / `ReadAction()` 在 32 位 PSP 上触发 abort
-     （PSP 构建带 `-fno-exceptions`，`std::__throw_*` 会直接 abort）。下一步在 `ReadAction`
-     内部继续打点（name / frames.resize / fps 三段）。
-3. 重编后复验：清屏、图块、对象三条依次确认。
-4. 再接输入、音频、存档、UI。
-5. 把 `P3dLoadFile` / `P3dSave` 的文件访问移到平台层（`sceIo`）。
+1. 输入：在 PPSSPP 里实际按方向/A/Start，确认移动与交互。
+2. 音频：接 `sceAudio`，先做 PCM 测试音。
+3. 存档：实际写/读一次 `save0.dat`。
+4. UI：确认 HUD/面板在 480×272 下不裁切。
+5. 清理剩余调试代码，再跑三 demo 回归。
 
-## 8. 和 3DS 的关系
+## 8. 踩坑记录
 
-3DS 后端只作为参考：
-
-- `engine/platform/_3ds`
-- `engine/render/backend_citro.cpp`
-- `runtime/3ds_main.cpp`
-
-PSP 不复用旧 3DS runtime/editor/demo；只对照平台层和提交顺序。
+- 不要用归一化 UV 画 PSP 纹理，会只采到一个 texel（表现为黑屏/纯色）。
+- 不要逐图同步写日志，会拖慢到只看到前几百条；用汇总计数。
+- 不要直接把 `C3D_TexUpload` 的思路套 PSP；PSP 纹理是线性数据 + texel UV。
+- 修改 `DrawImage` 后，先跑一张 16×16 棋盘纹理，能看出 UV/采样问题，纯色图看不出来。

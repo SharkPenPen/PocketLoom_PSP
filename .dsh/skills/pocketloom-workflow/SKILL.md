@@ -210,7 +210,7 @@ runtime 不直接依赖 `std::filesystem` 和平台 API。
   - `cmake/toolchain-psp.cmake`
   - `tools/build-psp.ps1`
   - 状态与限制见 `docs/21-PSP后端.md`。
-- PSP 骨架已在 pspdev CI 编过，并在 PPSSPP 实跑；当前卡在“世界/精灵纹理不可见”，不能当成已收尾。
+- PSP 骨架已在 pspdev CI 编过，并在 PPSSPP 实跑；世界/地图/精灵/HUD 已可见，当前只剩输入/音频/存档细项。
 - Windows 原生没有官方 pspdev；WSL2 用 `tools/setup-psp-wsl.sh`，构建用 `tools/build-psp-wsl.sh`。
 - 不想用 WSL：走 `.github/workflows/psp.yml`（GitHub Actions）或 Linux 虚拟机；原生 MinPSP 太老，不用。
 
@@ -271,7 +271,7 @@ demo：samples/bee、samples/platformer、samples/topdown
 - 已通：世界/地图/精灵纹理可见。根因是 **PSP GU 纹理坐标是 texel 坐标，不是 0..1**；SDL PSP 也是 `uv * textureWidth`。`DrawImage` 必须用 `u0=sx, v0=sy, u1=sx+sw, v1=sy+sh`，不能除以 POT。
 - 当前纹理路径：RGBA 直拷、POT 至少 32/64、`GU_PSM_8888`、`GU_SPRITES`、纹理坐标按 texel；**swizzle 可关闭**（我们的纹理线性数据在 PPSSPP 正常）。
 - 逐图同步 `GpuTrace` 会拖慢；调试用 `cmd_images`/`img_non1` 汇总，不要逐图写文件。
-- 地图/对象恢复后，PSP 仍需清理调试 trace 和 probes。
+- 调试 trace/probes 已关闭；`GpuTrace`/`Trace` 现在 no-op，`PL_*.txt` 不再生成。
 - 调试痕迹（PL_ERR/PL_TRACE/PL_GAME/PL_GPU/PL_DROP/PL_INPUT、GameTrace/GpuTrace）大量留在源码；发布前必须清。
 - PSP 解析必须保留的 workaround：`Action::frames` 用 `push_back(AnimFrame{})`；nontrivial 容器用 `reserve/emplace`；`DrawList` 放 static；主线程栈 256KB。
 - 参考文档：`docs/21-PSP后端.md`。
@@ -308,14 +308,14 @@ demo：samples/bee、samples/platformer、samples/topdown
 | 构建 | 通过 | CI 通过 | CI 通过 |
 | 启动 | 通过 | 通过 | 通过 |
 | HUD | 通过 | 通过 | 通过 |
-| 地图/对象 | 通过 | 通过 | 贴图不可见 |
-| 输入 | 键盘可用 | 代码已接，自动注入未验 | 自动注入未验 |
+| 地图/对象 | 通过 | 通过 | 通过 |
+| 输入 | 键盘可用 | 代码已接，自动注入未验 | 代码已接，自动注入未验 |
 | 音频 | 通过 | ndsp 已接，未听验 | 静音占位 |
 | 编辑器导出 | 通过 | 读同一 p3d | 读同一 p3d |
 
 ## 16. 下一步优先级
 
-1. PSP：查对象 Image 命令为何没进 backend（DrawList/TextureGet/跨库），保留现有 trace 直到定位。
+1. PSP：做输入/音频/存档实测，补 480×272 的 HUD/UI 检查。
 2. 3DS：手动按键 + 听音频；校色；补一个双击/长按测试。
 3. 编辑器：用多格 tileset 验证图块绘制；触发器加完导出实跑；UI 元素导出后 3DS/PC 对照。
 4. 清理 PSP/3DS 调试 trace，更新 docs，跑三 demo + capabilities + package。
