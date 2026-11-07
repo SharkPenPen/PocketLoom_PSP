@@ -19,7 +19,13 @@ set(ENGINE_CORE_SOURCES
 add_library(engine_core STATIC ${ENGINE_CORE_SOURCES})
 target_include_directories(engine_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
-if(PSP)
+if(3DS)
+  add_library(engine_host_3ds STATIC
+    render/backend_citro.cpp
+    platform/_3ds/platform_3ds.cpp
+  )
+  target_link_libraries(engine_host_3ds PUBLIC engine_core citro2d citro3d ctru m)
+elseif(PSP)
   add_library(engine_host_psp STATIC
     render/backend_psp.cpp
     platform/_psp/platform_psp.cpp

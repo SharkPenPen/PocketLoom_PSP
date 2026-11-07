@@ -16,6 +16,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+if(3DS)
+  # 3DS 只编 runtime + engine，不编编辑器/工具/测试。
+  add_compile_options(
+    -fno-exceptions
+    -fno-rtti
+    -fno-threadsafe-statics
+    -ffunction-sections
+    -fdata-sections
+    -Wall
+    -Wextra
+  )
+  add_subdirectory(engine)
+  add_subdirectory(runtime)
+  return()
+endif()
+
 if(PSP)
   # PSP 只编 runtime + engine，不编编辑器/工具/测试。
   add_compile_options(

@@ -21,9 +21,19 @@ jobs:
         env:
           DEVKITPRO: /opt/devkitpro
         run: cmake --build build/3ds
+      - name: Build main 3DS target
+        env:
+          DEVKITPRO: /opt/devkitpro
+        run: |
+          cmake -S . -B build/3ds-main -G "Unix Makefiles" \
+            -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/cmake/toolchain-3ds.cmake
+          cmake --build build/3ds-main --target game_3ds
+
       - name: Upload 3dsx
         uses: actions/upload-artifact@v4
         with:
           name: pocketloom-3ds-hello
           if-no-files-found: error
-          path: build/3ds/bin/pocketloom_3ds_hello.3dsx
+          path: |
+            build/3ds/bin/pocketloom_3ds_hello.3dsx
+            build/3ds-main/bin/game_3ds.3dsx
