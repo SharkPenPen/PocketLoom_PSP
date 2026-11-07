@@ -23,6 +23,7 @@
 #include <pspkernel.h>
 #include <pspiofilemgr.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <malloc.h>
