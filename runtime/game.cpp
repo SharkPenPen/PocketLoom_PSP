@@ -1880,7 +1880,7 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
     for (const SceneLayer& layer : s.layers) {
       if (!layer.visible) continue;
       if (layer.foreground != foreground_pass) continue;
-      if (s.tilesets.empty()) continue;
+      if (layer.chunks.empty() || s.tilesets.empty()) continue;
       const float cam_x =
           camera_x_ * static_cast<float>(layer.scroll_x) / 100.0f;
       const float cam_y =
