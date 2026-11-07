@@ -1602,6 +1602,7 @@ void Game::RunEnemyRules(const Object& o, EnemyState& e, float dt) {
 }
 
 void Game::UpdateSimulation(float dt, const eng::InputState& input) {
+  GameTrace("sim_enter");
   if (p3d_ == nullptr || player_object_ < 0) return;
   if (toast_timer_ > 0.0f) toast_timer_ -= dt;
   if (player_attack_active_ > 0.0f) player_attack_active_ -= dt;
@@ -1625,6 +1626,7 @@ void Game::UpdateSimulation(float dt, const eng::InputState& input) {
       }
     }
   }
+  GameTrace("sim_after_env");
   // ★ 速度/跳跃/重力改成读"合成后的参数" ★
   //   base 来自对象字段，修饰器（水/毒/装备/…）以后往环境里加，这里不用改。
   pgmmv::StatBlock st = pgmmv::DefaultStats();
@@ -1636,10 +1638,12 @@ void Game::UpdateSimulation(float dt, const eng::InputState& input) {
   player_.vy += stat_gravity * dt;  // 重力是常量，不需要写规则
   // 行为全部由规则驱动（没有规则 = 不动）
   RunPlayerRules(o, input, dt);
+  GameTrace("sim_after_rules");
   if (player_.vy > stat_maxfall) player_.vy = stat_maxfall;
   player_.on_ground = false;
   ResolveX(player_.vx * dt, player_object_);
   ResolveY(player_.vy * dt, player_object_);
+  GameTrace("sim_after_resolve");
   if (o.limit_screen) {  // 按当前帧的碰撞盒夹在 240x160 内
     const AttackBox cb = ColBoxOf(o, player_.action, player_.frame);
     const float left = -static_cast<float>(cb.x);
@@ -1653,6 +1657,7 @@ void Game::UpdateSimulation(float dt, const eng::InputState& input) {
   }
 
   UpdateInteraction(input);
+  GameTrace("sim_after_interaction");
   const Object& pc = p3d_->objects[player_object_];
   for (CheckpointState& cp : checkpoints_) {
     if (cp.active || cp.object < 0 || cp.object >= static_cast<int>(p3d_->objects.size())) continue;
@@ -1679,12 +1684,18 @@ void Game::UpdateSimulation(float dt, const eng::InputState& input) {
     SetScene(scene_index_);
     return;
   }
+  GameTrace("sim_after_checkpoints");
 
   UpdateAnimation(dt);
+  GameTrace("sim_after_anim");
   UpdateEnemies(dt);
+  GameTrace("sim_after_enemies");
   UpdateProjectiles(dt);
+  GameTrace("sim_after_projectiles");
   UpdateTriggers();
+  GameTrace("sim_after_triggers");
   UpdateCamera(dt);
+  GameTrace("sim_after_camera");
 }
 
 // 交互点：玩家在区域内且条件满足时，按键执行动作
