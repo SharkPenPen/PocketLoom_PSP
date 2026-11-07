@@ -2033,7 +2033,7 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
                 player_.facing > 0);
   }
 
-  draw_layers(true);
+  // draw_layers(true);  // DEBUG: 前景层暂不画，验证是否盖住对象
 
 
 }
