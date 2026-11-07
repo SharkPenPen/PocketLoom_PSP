@@ -150,11 +150,12 @@ bool ReadAction(Reader& r, Action* a, std::string* error) {
     SetErr(error, "p3d: bad action frame count");
     return false;
   }
-  a->frames.resize(n);
-  PT_MARK("act_frames_resized");
+  a->frames.reserve(n);
+  PT_MARK("act_frames_reserved");
   for (uint16_t i = 0; i < n; ++i) {
     PT_N("frame", i);
-    AnimFrame& f = a->frames[i];
+    a->frames.emplace_back();
+    AnimFrame& f = a->frames.back();
     f.image = r.I32();
     f.hold = static_cast<int>(r.U16());
     f.origin_x = r.I32();
@@ -239,9 +240,10 @@ bool ReadObject(Reader& r, Object* o, std::string* error) {
     SetErr(error, "p3d: bad rule count");
     return false;
   }
-  o->rules.resize(rn);
+  o->rules.reserve(rn);
   for (uint16_t i = 0; i < rn; ++i) {
-    Rule& rl = o->rules[i];
+    o->rules.emplace_back();
+    Rule& rl = o->rules.back();
     rl.name = r.Str();
     rl.enabled = r.U8() != 0;
     const uint8_t cn = r.U8();
