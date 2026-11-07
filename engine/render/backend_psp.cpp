@@ -187,6 +187,10 @@ bool EnsureTexture(TextureId id, const Texture** out, PspTexture** out_tex) {
     const size_t c = static_cast<size_t>(tex->width / 2) +
                      static_cast<size_t>(tex->height / 2) * static_cast<size_t>(pw);
     GpuTrace("tex_center", static_cast<int>(slot.data[c] & 0xFFFFFFu));
+    GpuTrace("tex_alpha", static_cast<int>((slot.data[c] >> 24) & 0xFFu));
+    const size_t sc = static_cast<size_t>(tex->width / 2) +
+                      static_cast<size_t>(tex->height / 2) * static_cast<size_t>(tex->width);
+    GpuTrace("src_alpha", static_cast<int>(tex->rgba8[sc * 4 + 3]));
   }
   if (pw >= 16 || ph >= 16) {
     u32* sw = static_cast<u32*>(AllocAligned16(static_cast<size_t>(pw) * ph * 4));
