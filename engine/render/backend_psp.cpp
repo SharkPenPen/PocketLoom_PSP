@@ -229,10 +229,11 @@ void DrawImage(const DrawCmd& cmd) {
   const int sy = cmd.src.whole() ? 0 : static_cast<int>(cmd.src.y);
   if (sw <= 0 || sh <= 0) return;
 
-  float u0 = static_cast<float>(sx) / static_cast<float>(pt->pot_w);
-  float v0 = static_cast<float>(sy) / static_cast<float>(pt->pot_h);
-  float u1 = static_cast<float>(sx + sw) / static_cast<float>(pt->pot_w);
-  float v1 = static_cast<float>(sy + sh) / static_cast<float>(pt->pot_h);
+  // PSP GU 的纹理坐标是 texel 坐标，不是 0..1；SDL PSP 也是 uv*textureWidth。
+  float u0 = static_cast<float>(sx);
+  float v0 = static_cast<float>(sy);
+  float u1 = static_cast<float>(sx + sw);
+  float v1 = static_cast<float>(sy + sh);
 
   if ((cmd.flags & kDrawFlipH) != 0) {
     const float t = u0;
