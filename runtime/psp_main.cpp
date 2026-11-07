@@ -197,9 +197,14 @@ int main(int argc, char** argv) {
                                      img.width, img.height);
   }
 
+  TraceInt("texture_count", texture_count);
   if (texture_count > 1) {
     TraceInt("texid1", static_cast<int>(textures[1]));
     TraceInt("texvalid1", eng::TextureGet(textures[1]) != nullptr ? 1 : 0);
+  }
+  if (texture_count > 2) {
+    TraceInt("texid2", static_cast<int>(textures[2]));
+    TraceInt("texvalid2", eng::TextureGet(textures[2]) != nullptr ? 1 : 0);
   }
   r4::Game game;
   game.SetSavePath(kSavePath);
@@ -247,7 +252,7 @@ int main(int argc, char** argv) {
       TraceInt("dl_before", dl.count());
       dl.DrawImage(eng::Rect2{eng::Vec2{10.0f, 100.0f}, eng::Vec2{32.0f, 32.0f}},
                    textures[1], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
-      if (texture_count > 2) {
+      if (textures[2] != 0) {
         dl.DrawImage(eng::Rect2{eng::Vec2{200.0f, 100.0f}, eng::Vec2{64.0f, 64.0f}},
                      textures[2], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
       }
