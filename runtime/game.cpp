@@ -969,6 +969,8 @@ void Game::UpdateAnimation(float dt) {
     if (action < 0 || action >= static_cast<int>(o.actions.size())) action = 0;
     player_.action = action;
   }
+  GameTraceInt("anim_action", player_.action);
+  GameTraceInt("anim_actions", static_cast<int>(o.actions.size()));
   const Action& a = o.actions[player_.action];
   if (a.frames.empty()) {
     player_.frame = 0;
