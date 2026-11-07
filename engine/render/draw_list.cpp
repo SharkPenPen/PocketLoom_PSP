@@ -1,6 +1,9 @@
 // engine/render/draw_list.cpp
 #include "render/draw_list.h"
 
+#include <cstdio>
+#include <cstring>
+
 #if defined(__psp__)
 #include <pspiofilemgr.h>
 static void DropTrace(const char* tag, int a, int b, int c, int d) {
