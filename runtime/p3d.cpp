@@ -20,7 +20,7 @@ struct Reader {
   bool ok = true;
 
   bool Need(size_t n) {
-    if (!ok || n > size - pos) {
+    if (!ok || pos > size || n > size - pos) {
       ok = false;
       return false;
     }

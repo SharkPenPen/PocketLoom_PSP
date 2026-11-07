@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -27,7 +28,7 @@
 
 PSP_MODULE_INFO("PocketLoom", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER | PSP_THREAD_ATTR_VFPU);
-PSP_MAIN_THREAD_STACK_SIZE_KB(256);
+PSP_MAIN_THREAD_STACK_SIZE_KB(512);
 
 namespace {
 
@@ -35,6 +36,16 @@ constexpr const char* kDefaultP3d = "ms0:/PSP/GAME/PocketLoom/game.p3d";
 constexpr const char* kSaveDir = "ms0:/PSP/SAVEDATA/PocketLoom";
 constexpr const char* kSavePath = "ms0:/PSP/SAVEDATA/PocketLoom/save0.dat";
 constexpr const char* kReportPath = "ms0:/PSP/SAVEDATA/PocketLoom/report.txt";
+constexpr const char* kTracePath = "ms0:/PL_ERR.txt";
+
+void Trace(const char* tag, const char* text) {
+  const SceUID fd = sceIoOpen(kTracePath, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_APPEND, 0777);
+  if (fd < 0) return;
+  sceIoWrite(fd, tag, static_cast<unsigned int>(std::strlen(tag)));
+  if (text != nullptr) sceIoWrite(fd, text, static_cast<unsigned int>(std::strlen(text)));
+  sceIoWrite(fd, "\n", 1);
+  sceIoClose(fd);
+}
 
 bool ReadFile(const char* path, std::vector<unsigned char>* out) {
   const SceUID fd = sceIoOpen(path, PSP_O_RDONLY, 0);
@@ -103,7 +114,18 @@ int main(int argc, char** argv) {
 
   r4::P3d p3d;
   std::string err;
-  if (!r4::P3dLoad(bytes.data(), bytes.size(), &p3d, &err)) {
+  bool loaded = false;
+  try {
+    loaded = r4::P3dLoad(bytes.data(), bytes.size(), &p3d, &err);
+  } catch (const std::exception& e) {
+    Trace("P3dLoad exception: ", e.what());
+    return 3;
+  } catch (...) {
+    Trace("P3dLoad exception: unknown", nullptr);
+    return 3;
+  }
+  if (!loaded) {
+    Trace("P3dLoad error: ", err.c_str());
     std::fprintf(stderr, "psp: %s\n", err.c_str());
     return 3;
   }
