@@ -38,7 +38,7 @@ constexpr int kBufferW = 512;
 constexpr int kMaxTexture = kMaxTextures;
 
 // 256 KB 命令列表；PSP 的 GU 命令缓冲必须 16 字节对齐。
-alignas(16) u32 g_list[0x40000 / 4];
+alignas(16) u32 g_list[0x100000 / 4];
 
 struct PspTexture {
   const u8* source = nullptr;
@@ -187,11 +187,9 @@ struct VtxColor {
 };
 
 void DrawImage(const DrawCmd& cmd) {
-  GpuTrace("img_begin", static_cast<int>(cmd.texture));
   const Texture* tex = nullptr;
   PspTexture* pt = nullptr;
   if (!EnsureTexture(cmd.texture, &tex, &pt)) return;
-  GpuTrace("img_ensured", static_cast<int>(cmd.texture));
 
   const int sw = cmd.src.whole() ? pt->width : static_cast<int>(cmd.src.w);
   const int sh = cmd.src.whole() ? pt->height : static_cast<int>(cmd.src.h);
@@ -231,17 +229,13 @@ void DrawImage(const DrawCmd& cmd) {
   ScissorFromRect(cmd.clip);
 
   sceGuEnable(GU_TEXTURE_2D);
-  GpuTrace("img_texmode", static_cast<int>(cmd.texture));
   sceGuTexMode(GU_PSM_8888, 0, 0, 0);
   sceGuTexImage(0, pt->pot_w, pt->pot_h, pt->pot_w, pt->data);
-  GpuTrace("img_teximage", static_cast<int>(cmd.texture));
   sceGuTexSync();
   sceGuColor(color);
-  GpuTrace("img_draw", static_cast<int>(cmd.texture));
   sceGuDrawArray(GU_TRIANGLE_STRIP,
                  GU_TEXTURE_32BITF | GU_COLOR_8888 | GU_VERTEX_32BITF | GU_TRANSFORM_2D,
                  4, nullptr, v);
-  GpuTrace("img_done", static_cast<int>(cmd.texture));
 }
 
 void DrawRect(const DrawCmd& cmd) {
@@ -320,25 +314,20 @@ void PspSubmit(const DrawList& dl) {
   ResetStates();
 
   for (int i = 0; i < dl.count(); ++i) {
-    GpuTrace("cmd", i);
     const DrawCmd& cmd = dl.cmd(i);
     switch (cmd.kind) {
       case DrawCmdKind::kClear:
-        GpuTrace("clear", -1);
         sceGuScissor(0, 0, kScreenW, kScreenH);
         sceGuClearColor(ToGuColor(cmd.color));
         sceGuClear(GU_COLOR_BUFFER_BIT);
         break;
       case DrawCmdKind::kRect:
-        GpuTrace("rect", -1);
         DrawRect(cmd);
         break;
       case DrawCmdKind::kImage:
-        GpuTrace("image", -1);
         DrawImage(cmd);
         break;
     }
-    GpuTrace("cmd_done", i);
   }
 
   GpuTrace("finish", -1);
