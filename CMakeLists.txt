@@ -20,7 +20,8 @@ if(PSP)
   # PSP 只编 runtime + engine，不编编辑器/工具/测试。
   add_compile_options(
     -G0
-    -fno-rtti
+    -fexceptions
+    -frtti
     -fno-threadsafe-statics
     -ffunction-sections
     -fdata-sections
