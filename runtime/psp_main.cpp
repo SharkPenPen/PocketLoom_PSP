@@ -206,6 +206,11 @@ int main(int argc, char** argv) {
     TraceInt("texid2", static_cast<int>(textures[2]));
     TraceInt("texvalid2", eng::TextureGet(textures[2]) != nullptr ? 1 : 0);
   }
+  static eng::u32 solid_probe[8 * 8];
+  for (auto& px : solid_probe) px = 0xFFFF00FFu;
+  const eng::TextureId solid_tex =
+      eng::TextureCreate(reinterpret_cast<const eng::u8*>(solid_probe), 8, 8);
+
   r4::Game game;
   game.SetSavePath(kSavePath);
   Trace("game_before_init", nullptr);
@@ -252,6 +257,10 @@ int main(int argc, char** argv) {
                    textures[1], 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 16, 16));
     }
     game.Render(dl, textures, texture_count);
+    if (solid_tex != 0) {
+      dl.DrawImage(eng::Rect2{eng::Vec2{0.0f, 0.0f}, eng::Vec2{480.0f, 272.0f}},
+                   solid_tex, 0xFFFFFFFFu, eng::TexRegion::Make(0, 0, 8, 8));
+    }
     if (texture_count > 1) {
       TraceInt("dl_before", dl.count());
       dl.DrawImage(eng::Rect2{eng::Vec2{10.0f, 100.0f}, eng::Vec2{32.0f, 32.0f}},
