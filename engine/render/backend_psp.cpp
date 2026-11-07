@@ -306,6 +306,18 @@ void PspSubmit(const DrawList& dl) {
   }
   if (!g_ready) return;
   GpuTrace("submit_enter", dl.count());
+  {
+    int images = 0, rects = 0, clears = 0;
+    for (int i = 0; i < dl.count(); ++i) {
+      const DrawCmdKind k = dl.cmd(i).kind;
+      if (k == DrawCmdKind::kImage) ++images;
+      else if (k == DrawCmdKind::kRect) ++rects;
+      else if (k == DrawCmdKind::kClear) ++clears;
+    }
+    GpuTrace("cmd_images", images);
+    GpuTrace("cmd_rects", rects);
+    GpuTrace("cmd_clears", clears);
+  }
 
   sceGuStart(GU_DIRECT, g_list);
 

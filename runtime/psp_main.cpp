@@ -146,6 +146,15 @@ int main(int argc, char** argv) {
   // p3d 是左下原点、y 向上；引擎内部是屏幕系，这里翻一次。
   r4::MirrorSceneYUp(p3d, p3d.view_h);
   Trace("mirror_ok", nullptr);
+  TraceInt("p3d_tilesets", static_cast<int>(p3d.tilesets.size()));
+  TraceInt("p3d_images", static_cast<int>(p3d.images.size()));
+  if (!p3d.scenes.empty()) {
+    TraceInt("scene_tilesets", static_cast<int>(p3d.scenes[0].tilesets.size()));
+    TraceInt("scene_layers", static_cast<int>(p3d.scenes[0].layers.size()));
+    if (!p3d.scenes[0].layers.empty()) {
+      TraceInt("layer_chunks", static_cast<int>(p3d.scenes[0].layers[0].chunks.size()));
+    }
+  }
 
   eng::PlatformConfig cfg;
   cfg.title = "PocketLoom";
