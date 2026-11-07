@@ -395,18 +395,20 @@ bool ReadScene(Reader& r, Scene* s, std::string* error) {
     SetErr(error, "p3d: bad scene layer count");
     return false;
   }
-  s->layers.resize(lc);
+  s->layers.reserve(lc);
   for (uint16_t li = 0; li < lc; ++li) {
-    SceneLayer& layer = s->layers[li];
+    s->layers.emplace_back();
+    SceneLayer& layer = s->layers.back();
     layer.visible = (r.U8() != 0);
     layer.scroll_x = r.I32();
     layer.scroll_y = r.I32();
     layer.foreground = (r.U8() != 0);
     uint32_t n = 0;
     if (!ReadCount(r, &n, 65536, error, "scene chunks")) return false;
-    layer.chunks.resize(n);
+    layer.chunks.reserve(n);
     for (uint32_t ci = 0; ci < n; ++ci) {
-      SceneChunk& c = layer.chunks[ci];
+      layer.chunks.emplace_back();
+      SceneChunk& c = layer.chunks.back();
       c.cx = r.I32();
       c.cy = r.I32();
       uint32_t cell_count = 0;
@@ -424,9 +426,10 @@ bool ReadScene(Reader& r, Scene* s, std::string* error) {
     SetErr(error, "p3d: bad collision chunk count");
     return false;
   }
-  s->collision.resize(mc);
+  s->collision.reserve(mc);
   for (uint16_t ci = 0; ci < mc; ++ci) {
-    SceneCollisionChunk& c = s->collision[ci];
+    s->collision.emplace_back();
+    SceneCollisionChunk& c = s->collision.back();
     c.cx = r.I32();
     c.cy = r.I32();
     uint32_t n = 0;
@@ -641,22 +644,32 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
     if (!ReadObject(r, &p.objects[i], error)) return false;
   }
 
+  PT_MARK("objects_ok");
   if (!ReadCount(r, &count, 512, error, "tilesets")) return false;
-  p.tilesets.resize(count);
+  p.tilesets.reserve(count);
+  PT_MARK("tilesets_reserved");
   for (uint32_t i = 0; i < count; ++i) {
-    if (!ReadTileset(r, &p.tilesets[i], error)) return false;
+    p.tilesets.emplace_back();
+    if (!ReadTileset(r, &p.tilesets.back(), error)) return false;
   }
 
+  PT_MARK("tilesets_ok");
   if (!ReadCount(r, &count, 2048, error, "scenes")) return false;
-  p.scenes.resize(count);
+  p.scenes.reserve(count);
+  PT_MARK("scenes_reserved");
   for (uint32_t i = 0; i < count; ++i) {
-    if (!ReadScene(r, &p.scenes[i], error)) return false;
+    p.scenes.emplace_back();
+    PT_N("scene", i);
+    if (!ReadScene(r, &p.scenes.back(), error)) return false;
   }
 
+  PT_MARK("scenes_ok");
   if (!ReadCount(r, &count, 4096, error, "transitions")) return false;
-  p.transitions.resize(count);
+  p.transitions.reserve(count);
+  PT_MARK("transitions_reserved");
   for (uint32_t i = 0; i < count; ++i) {
-    if (!ReadTransition(r, &p.transitions[i])) {
+    p.transitions.emplace_back();
+    if (!ReadTransition(r, &p.transitions.back())) {
       SetErr(error, "p3d: transition read failed");
       return false;
     }
