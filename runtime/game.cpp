@@ -110,6 +110,7 @@ int ActionTotalTicks(const Action& a) {
 }
 
 int ActionFrameAt(const Action& a, float time, bool* ended) {
+  GameTrace("af_enter");
   if (ended != nullptr) *ended = false;
   const int n = static_cast<int>(a.frames.size());
   if (n <= 0) {
@@ -117,8 +118,10 @@ int ActionFrameAt(const Action& a, float time, bool* ended) {
     return 0;
   }
   const int total = ActionTotalTicks(a);
+  GameTrace("af_total");
   if (total <= 0) return 0;
   int tick = static_cast<int>(std::floor(std::max(0.0f, time) * 60.0f));
+  GameTrace("af_tick");
   if (a.loop) {
     tick %= total;
   } else if (tick >= total) {
@@ -126,6 +129,7 @@ int ActionFrameAt(const Action& a, float time, bool* ended) {
     return n - 1;
   }
   int idx = 0;
+  GameTrace("af_loop");
   while (idx < n) {
     const int hold = P3dActionHold(a, idx);
     if (tick < hold) break;
@@ -938,6 +942,7 @@ void Game::ResolveY(float dy, int obj_index) {
 }
 
 void Game::UpdateAnimation(float dt) {
+  GameTrace("anim_enter");
   if (p3d_ == nullptr || player_object_ < 0) return;
   const Object& o = p3d_->objects[player_object_];
   if (o.actions.empty()) return;
@@ -953,8 +958,10 @@ void Game::UpdateAnimation(float dt) {
     return;
   }
   player_.anim_time += dt;
+  GameTrace("anim_before_frame_at");
   bool ended = false;
   player_.frame = ActionFrameAt(a, player_.anim_time, &ended);
+  GameTrace("anim_after_frame_at");
   player_.anim_end = ended;
 }
 
