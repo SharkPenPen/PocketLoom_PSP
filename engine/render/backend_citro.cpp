@@ -1,6 +1,7 @@
 // PocketLoom 3DS backend: DrawList -> citro2d.
 #include "render/draw_list.h"
 #include "render/swizzle.h"
+#include "base/log.h"
 
 #include <3ds.h>
 #include <citro2d.h>
