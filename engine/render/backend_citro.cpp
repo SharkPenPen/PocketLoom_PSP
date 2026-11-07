@@ -48,9 +48,15 @@ C3D_Tex* GpuTextureFor(TextureId id, bool flip_v) {
   }
   C3D_TexSetFilter(&slot.tex, GPU_NEAREST, GPU_NEAREST);
   C3D_TexSetWrap(&slot.tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-  // libctru 的 C3D_TexUpload/C3D_TexLoadImage 负责线性 RGBA -> GPU tiled；
-  // 不要再手工 swizzle，否则会双重重排。
-  C3D_TexUpload(&slot.tex, t->rgba8);
+  u32 gpu_size = 0;
+  void* gpu_mem = C3D_Tex2DGetImagePtr(&slot.tex, 0, &gpu_size);
+  const u32 need = static_cast<u32>(t->width) * static_cast<u32>(t->height) * 4u;
+  if (gpu_mem == nullptr || gpu_size < need ||
+      !SwizzleRgba8To3ds(t->rgba8, t->width, t->height,
+                         static_cast<u8*>(gpu_mem), flip_v)) {
+    C3D_TexDelete(&slot.tex);
+    return nullptr;
+  }
   C3D_TexFlush(&slot.tex);
   slot.ok = true;
   return &slot.tex;
