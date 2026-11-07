@@ -35,6 +35,24 @@ jobs:
       - name: Build
         run: cmake --build build/psp
 
+      - name: Build PSP hello probe
+        run: |
+          /opt/pspdev/bin/psp-gcc -G0 -O2 -D_PSP_FW_VERSION=660 \
+            -I/opt/pspdev/psp/include -I/opt/pspdev/psp/sdk/include \
+            -L/opt/pspdev/psp/lib -L/opt/pspdev/psp/sdk/lib \
+            -o build/psp/hello.elf tools/psp_hello.c -lpspkernel
+          /opt/pspdev/bin/psp-fixup-imports build/psp/hello.elf
+          /opt/pspdev/bin/mksfo "PLHello" build/psp/HELLO.SFO
+          /opt/pspdev/bin/pack-pbp build/psp/HELLO.PBP build/psp/HELLO.SFO \
+            NULL NULL NULL NULL NULL build/psp/hello.elf NULL
+
+      - name: Upload PSP hello artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: psp-hello
+          if-no-files-found: error
+          path: build/psp/HELLO.PBP
+
       - name: Stage PSP data
         run: cp samples/bee/bee.p3d build/psp/game.p3d
 
