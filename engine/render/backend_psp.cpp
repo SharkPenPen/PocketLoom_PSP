@@ -38,7 +38,7 @@ constexpr int kBufferW = 512;
 constexpr int kMaxTexture = kMaxTextures;
 
 // 256 KB 命令列表；PSP 的 GU 命令缓冲必须 16 字节对齐。
-alignas(16) u32 g_list[0x10000 / 4];
+alignas(16) u32 g_list[0x40000 / 4];
 
 struct PspTexture {
   const u8* source = nullptr;
