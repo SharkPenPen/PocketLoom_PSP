@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
 
   r4::AudioInit();  // 当前 audio_psp 静音
 
-  eng::TextureId textures[32] = {};
+  static eng::TextureId textures[32] = {};
   static std::vector<std::vector<unsigned char>> texture_data;
   const int texture_count =
       static_cast<int>(p3d.images.size()) < 32 ? static_cast<int>(p3d.images.size()) : 32;
