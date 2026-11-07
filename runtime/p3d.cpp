@@ -741,7 +741,7 @@ bool P3dLoad(const unsigned char* data, size_t size, P3d* out,
       }
     }
   }
-  *out = std::move(p);
+  std::swap(*out, p);
   return true;
 }
 
