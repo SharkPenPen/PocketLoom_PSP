@@ -38,6 +38,7 @@ static void GameTraceInt(const char* tag, int value) {
 }
 #else
 #define GameTrace(tag) ((void)0)
+#define GameTraceInt(tag, value) ((void)0)
 #endif
 
 #include "engine/base/rect.h"
@@ -2032,16 +2033,12 @@ void Game::RenderWorld(eng::DrawList& dl, const eng::TextureId* textures,
                 frame, false);
   }
   RenderProjectiles(dl, textures, texture_count);
-  dl.DrawRect(eng::Rect2{eng::Vec2{player_.x - camera_x_ - 8.0f,
-                                   player_.y - camera_y_ - 8.0f},
-                         eng::Vec2{16.0f, 16.0f}},
-              0xFFFF0000u);
   if (player_object_ >= 0) {
     draw_object(player_object_, player_.x, player_.y, player_.action, player_.frame,
                 player_.facing > 0);
   }
 
-  // draw_layers(true);  // DEBUG: 前景层暂不画，验证是否盖住对象
+  draw_layers(true);
 
 
 }
