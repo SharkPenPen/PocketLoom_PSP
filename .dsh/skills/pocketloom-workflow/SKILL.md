@@ -1,14 +1,14 @@
 ---
 name: pocketloom-workflow
 description: PocketLoom 开发工作流。修改 engine/runtime/pgmmv/editor、改 p3d 或存档格式、做 demo、接入 3DS/PSP 后端时使用；先定变更轨道，再按构建、能力测试、demo 导出、打包的顺序验证，避免旧玩法回潮和格式不同步。
-whenToUse: 任务涉及 D:\GitHud\GameStudio\GBAStudioMini，或提到 PocketLoom、p3d、3DSStudioMini、PSP 移植、编辑器、demo、打包时。
+whenToUse: 任务涉及 D:\GitHud\GameStudio\PocketLoom，或提到 PocketLoom、p3d、3DSStudioMini、PSP 移植、编辑器、demo、打包时。
 ---
 
 # PocketLoom 工作流
 
 ## 0. 项目事实
 
-- 主工程：`D:\GitHud\GameStudio\GBAStudioMini`
+- 主工程：`D:\GitHud\GameStudio\PocketLoom`
 - 3DS 参考工程：`D:\GitHud\GameStudio\3DSStudioMini-PGMMV`
 - 编辑器、运行时、导出、demo、打包都在主工程。
 - 3DS 参考工程是旧版本，只能参考平台层，不要整包合并。
@@ -252,7 +252,7 @@ demo：samples/bee、samples/platformer、samples/topdown
 
 ### 3DS
 - 本机 devkitPro：`D:\GitHud\GameStudio\3DSStudioMini-PGMMV\toolchain\devkitpro`。
-- CMake/Ninja：`D:\GitHud\GameStudio\GBAStudioMini\toolchain\mingw64\bin`。
+- CMake/Ninja：`D:\GitHud\GameStudio\PocketLoom\toolchain\mingw64\bin`。
 - Azahar：`3DSStudioMini-PGMMV\toolchain\azahar\azahar.exe`；截图工具 `3DSStudioMini-PGMMV\tools\shot-window.ps1`。
 - CI：`.github/workflows/3ds.yml`，镜像 `devkitpro/devkitarm:latest`，产物 `pocketloom-3ds-hello`（含 `game_3ds.3dsx`、`game_3ds.elf`、`game_3ds.smdh`、`romfs/`）。
 - CIA：用 makerom + bannertool 打包；本机工具在 `3DSStudioMini-PGMMV\toolchain\makerom` / `bannertool`。CIA 实际安装到 Azahar 能启动，标题 `PocketLoom 3DS`；这只验证模拟器安装，不等于真机/FBI。
