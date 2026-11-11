@@ -1267,76 +1267,6 @@ bool PickPngMany(std::vector<std::filesystem::path>* out) {
 }
 
 
-bool PickObjectJsonOpen(std::filesystem::path* out) {
-  wchar_t file[1024] = {};
-  OPENFILENAMEW ofn;
-  std::memset(&ofn, 0, sizeof(ofn));
-  ofn.lStructSize = sizeof(ofn);
-  ofn.hwndOwner = g_hwnd;
-  ofn.lpstrFilter = L"对象模板 (*.json)\0*.json\0所有文件 (*.*)\0*.*\0\0";
-  ofn.lpstrFile = file;
-  ofn.nMaxFile = 1024;
-  ofn.lpstrTitle = L"导入对象模板";
-  ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
-  if (GetOpenFileNameW(&ofn) != TRUE) return false;
-  *out = std::filesystem::path(file);
-  return true;
-}
-
-bool PickObjectJsonOpenMany(std::vector<std::filesystem::path>* out) {
-  std::vector<wchar_t> buffer(8192, L'\0');
-  OPENFILENAMEW ofn;
-  std::memset(&ofn, 0, sizeof(ofn));
-  ofn.lStructSize = sizeof(ofn);
-  ofn.hwndOwner = g_hwnd;
-  ofn.lpstrFilter = L"对象模板 (*.json)\0*.json\0所有文件 (*.*)\0*.*\0\0";
-  ofn.lpstrFile = buffer.data();
-  ofn.nMaxFile = static_cast<DWORD>(buffer.size());
-  ofn.lpstrTitle = L"批量导入对象模板";
-  ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR |
-              OFN_EXPLORER | OFN_ALLOWMULTISELECT;
-  if (GetOpenFileNameW(&ofn) != TRUE) return false;
-  const wchar_t* cursor = buffer.data();
-  const std::wstring first(cursor);
-  cursor += first.size() + 1;
-  std::vector<std::wstring> names;
-  while (*cursor != L'\0') {
-    const std::wstring name(cursor);
-    names.push_back(name);
-    cursor += name.size() + 1;
-  }
-  out->clear();
-  if (names.empty()) {
-    out->emplace_back(first);
-  } else {
-    const std::filesystem::path dir(first);
-    for (const std::wstring& name : names) {
-      out->push_back(dir / std::filesystem::path(name));
-    }
-  }
-  return true;
-}
-
-bool PickObjectJsonSave(std::filesystem::path* out, const std::string& default_name) {
-  wchar_t file[1024] = {};
-  std::wstring name(default_name.begin(), default_name.end());
-  name += L".json";
-  std::wcsncpy(file, name.c_str(), 1023);
-  OPENFILENAMEW ofn;
-  std::memset(&ofn, 0, sizeof(ofn));
-  ofn.lStructSize = sizeof(ofn);
-  ofn.hwndOwner = g_hwnd;
-  ofn.lpstrFilter = L"对象模板 (*.json)\0*.json\0所有文件 (*.*)\0*.*\0\0";
-  ofn.lpstrFile = file;
-  ofn.nMaxFile = 1024;
-  ofn.lpstrTitle = L"导出对象模板";
-  ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
-  ofn.lpstrDefExt = L"json";
-  if (GetSaveFileNameW(&ofn) != TRUE) return false;
-  *out = std::filesystem::path(file);
-  return true;
-}
-
 // ---- 动作入口 --------------------------------------------------------------
 void DoNewProjectDialog() {
   std::filesystem::path dir;
@@ -2377,177 +2307,6 @@ void DrawObjectAnimation() {
   ImGui::EndChild();
 }
 
-bool ProjectHasAssetPath(const std::string& path) {
-  for (const pgmmv::Asset& a : g_project.assets) {
-    if (a.path == path) return true;
-  }
-  return false;
-}
-
-void ExportCurrentObjectTemplate() {
-  pgmmv::ObjectDoc* obj = CurrentObject();
-  if (obj == nullptr) return;
-  std::filesystem::path path;
-  if (!PickObjectJsonSave(&path, obj->id)) return;
-  std::string error;
-  if (!pgmmv::ObjectSave(path, obj, &error)) {
-    SetStatus("导出对象模板失败：" + error);
-    return;
-  }
-  SetStatus("已导出对象模板：" + PathText(path));
-}
-
-bool FilesEqual(const std::filesystem::path& a, const std::filesystem::path& b) {
-  std::ifstream fa(a, std::ios::binary);
-  std::ifstream fb(b, std::ios::binary);
-  if (!fa || !fb) return false;
-  std::vector<char> da((std::istreambuf_iterator<char>(fa)),
-                       std::istreambuf_iterator<char>());
-  std::vector<char> db((std::istreambuf_iterator<char>(fb)),
-                       std::istreambuf_iterator<char>());
-  return da == db;
-}
-
-bool ImportTemplateImageDependency(const std::filesystem::path& template_path,
-                                   std::string* image_path, std::string* error) {
-  if (image_path->empty()) return true;
-  const std::filesystem::path rel(*image_path);
-  const std::string wanted_name = rel.filename().u8string();
-  for (const pgmmv::Asset& asset : g_project.assets) {
-    if (std::filesystem::path(asset.path).filename().u8string() == wanted_name) {
-      *image_path = asset.path;
-      return true;
-    }
-  }
-  const std::filesystem::path dir = template_path.parent_path();
-  const std::filesystem::path candidates[] = {
-      dir / rel,
-      dir.parent_path() / rel,
-      dir / rel.filename(),
-  };
-  std::filesystem::path source;
-  for (const std::filesystem::path& candidate : candidates) {
-    std::error_code ec;
-    if (std::filesystem::exists(candidate, ec) && !ec) {
-      source = candidate;
-      break;
-    }
-  }
-  if (source.empty()) {
-    if (error != nullptr) {
-      *error = "当前项目没有资源 " + *image_path + "，模板目录附近也没有同名文件";
-    }
-    return false;
-  }
-  for (const pgmmv::Asset& asset : g_project.assets) {
-    const std::filesystem::path existing = g_project.root_dir / asset.path;
-    std::error_code ec;
-    if (std::filesystem::exists(existing, ec) && !ec && FilesEqual(existing, source)) {
-      *image_path = asset.path;
-      return true;
-    }
-  }
-  std::string id;
-  std::string import_error;
-  if (!pgmmv::ProjectImportPng(&g_project, source, &id, &import_error)) {
-    if (error != nullptr) *error = import_error;
-    return false;
-  }
-  const pgmmv::Asset* asset = g_project.FindAsset(id);
-  if (asset == nullptr) {
-    if (error != nullptr) *error = "导入图像后找不到资源记录";
-    return false;
-  }
-  *image_path = asset->path;
-  g_selected_asset = id;
-  SyncAssetBuffer();
-  return true;
-}
-
-void ExportCurrentObjectPackage() {
-  pgmmv::ObjectDoc* obj = CurrentObject();
-  if (obj == nullptr) return;
-  std::filesystem::path dir;
-  if (!PickFolder(&dir)) return;
-  std::error_code ec;
-  std::filesystem::create_directories(dir, ec);
-  if (ec) {
-    SetStatus("导出模板包失败：无法创建目录");
-    return;
-  }
-  std::string error;
-  if (!pgmmv::ObjectSave(dir / "object.json", obj, &error)) {
-    SetStatus("导出模板包失败：" + error);
-    return;
-  }
-  if (!obj->image.empty()) {
-    const std::filesystem::path src = g_project.root_dir / obj->image;
-    const std::filesystem::path dst = dir / obj->image;
-    std::filesystem::create_directories(dst.parent_path(), ec);
-    std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing,
-                               ec);
-    if (ec) {
-      SetStatus("对象已导出，但复制图像失败：" + ec.message());
-      return;
-    }
-  }
-  SetStatus("已导出对象模板包：" + PathText(dir));
-}
-
-bool ImportObjectTemplatePath(const std::filesystem::path& path, bool push_undo,
-                                 std::string* imported_id, std::string* error) {
-  pgmmv::ObjectDoc obj;
-  if (!pgmmv::ObjectLoad(path, &obj, error)) return false;
-  if (push_undo) PushUndo();
-  if (!obj.image.empty() && !ProjectHasAssetPath(obj.image)) {
-    if (!ImportTemplateImageDependency(path, &obj.image, error)) return false;
-  }
-  std::string base = obj.id + "_import";
-  std::string id = base;
-  int n = 2;
-  while (g_project.FindObject(id) != nullptr) id = base + "_" + std::to_string(n++);
-  obj.id = id;
-  obj.name += " Import";
-  g_project.objects.push_back(std::move(obj));
-  g_selected_object = id;
-  g_selected_action = "idle";
-  if (imported_id != nullptr) *imported_id = id;
-  MarkDirty();
-  return true;
-}
-
-void ImportObjectTemplate() {
-  std::filesystem::path path;
-  if (!PickObjectJsonOpen(&path)) return;
-  std::string id;
-  std::string error;
-  if (!ImportObjectTemplatePath(path, true, &id, &error)) {
-    SetStatus("导入失败：" + error);
-    return;
-  }
-  SetStatus("已导入对象模板：" + id + "（未保存）");
-}
-
-void ImportObjectTemplatesBulk() {
-  std::vector<std::filesystem::path> paths;
-  if (!PickObjectJsonOpenMany(&paths) || paths.empty()) return;
-  PushUndo();
-  int imported = 0;
-  std::string last_error;
-  for (const std::filesystem::path& path : paths) {
-    std::string id;
-    if (ImportObjectTemplatePath(path, false, &id, &last_error)) {
-      ++imported;
-    }
-  }
-  if (imported == 0) {
-    SetStatus("批量导入失败：" + last_error);
-    return;
-  }
-  SetStatus("已批量导入 " + std::to_string(imported) + " 个对象模板（未保存）");
-}
-
-
 void DuplicateCurrentObject() {
   pgmmv::ObjectDoc* src = CurrentObject();
   if (src == nullptr) return;
@@ -2917,12 +2676,6 @@ void DrawObjectLeft() {
   if (RowButton("新建对象")) {
     CreateObject();
   }
-  if (RowButton("导入对象模板")) {
-    ImportObjectTemplate();
-  }
-  if (RowButton("批量导入对象模板")) {
-    ImportObjectTemplatesBulk();
-  }
   ImGui::Separator();
   ImGui::SetNextItemWidth(-1.0f);
   ImGui::InputTextWithHint("##object_filter", "搜索对象", g_object_filter,
@@ -2955,8 +2708,6 @@ void DrawObjectLeft() {
       g_show_rename_object = true;
     }
     if (RowButton("复制选中对象")) DuplicateCurrentObject();
-    if (RowButton("导出对象模板")) ExportCurrentObjectTemplate();
-    if (RowButton("导出模板包（含图像）")) ExportCurrentObjectPackage();
     if (DangerRowButton("删除选中对象")) {
       DeleteObject(g_selected_object);
     }
@@ -6104,107 +5855,6 @@ void DrawAct(pgmmv::ObjectDoc* obj, pgmmv::Effect* e, int uid) {
 
 }  // namespace ruledui
 
-pgmmv::Cond MakeCond(pgmmv::RuleCond t, const char* key = "") {
-  pgmmv::Cond c;
-  c.type = t;
-  c.key = key;
-  return c;
-}
-
-pgmmv::Effect MakeAct(pgmmv::RuleAct t, int x = 0, int y = 0, const char* text = "") {
-  pgmmv::Effect e;
-  e.type = t;
-  e.x = x;
-  e.y = y;
-  e.text = text;
-  return e;
-}
-
-// 模板：玩家（走 / 停 / 跳 / 落）
-void ApplyPlayerTemplate(pgmmv::ObjectDoc* obj) {
-  using C = pgmmv::RuleCond;
-  using A = pgmmv::RuleAct;
-  pgmmv::Rule gravity;
-  gravity.name = "重力";
-  gravity.when.push_back(MakeCond(C::kAlways));
-  gravity.effects.push_back(MakeAct(A::kGravity));
-
-  auto walk = [](const char* key, int vx, const char* flip) {
-    pgmmv::Rule r;
-    r.name = vx > 0 ? "右走" : "左走";
-    r.when.push_back(MakeCond(C::kKeyDown, key));
-    r.effects.push_back(MakeAct(A::kMove, vx, 0));
-    r.effects.push_back(MakeAct(A::kAnim, 0, 0, "run"));
-    r.effects.push_back(MakeAct(A::kFlip, 0, 0, flip));
-    return r;
-  };
-  auto stop = [](const char* key) {
-    pgmmv::Rule r;
-    r.name = "停";
-    r.when.push_back(MakeCond(C::kKeyUp, key));
-    r.effects.push_back(MakeAct(A::kAnim, 0, 0, "idle"));
-    return r;
-  };
-  pgmmv::Rule jump;
-  jump.name = "跳";
-  jump.when.push_back(MakeCond(C::kKeyPressed, "jump"));
-  jump.when.push_back(MakeCond(C::kOnGround));
-  jump.effects.push_back(MakeAct(A::kMove, 0, -420));
-  jump.effects.push_back(MakeAct(A::kAnim, 0, 0, "jump"));
-  jump.effects.push_back(MakeAct(A::kSfx, 0, 0, "jump"));
-
-  pgmmv::Rule fall;
-  fall.name = "下落";
-  fall.when.push_back(MakeCond(C::kOnGroundNot));
-  fall.effects.push_back(MakeAct(A::kAnim, 0, 0, "fall"));
-
-  obj->rules.clear();
-  obj->rules.push_back(gravity);
-  auto run = [](const char* key, int vx) {
-    pgmmv::Rule r;
-    r.name = vx > 0 ? "右跑" : "左跑";
-    pgmmv::Cond held;
-    held.type = C::kKeyHeld;
-    held.key = key;
-    held.value = 30;  // 按住 30 帧（0.5 秒）后加速
-    r.when.push_back(held);
-    r.effects.push_back(MakeAct(A::kMove, vx, 0));
-    r.effects.push_back(MakeAct(A::kAnim, 0, 0, "run"));
-    return r;
-  };
-  obj->rules.push_back(walk("right", 110, "right"));
-  obj->rules.push_back(walk("left", -110, "left"));
-  obj->rules.push_back(run("right", 176));
-  obj->rules.push_back(run("left", -176));
-  obj->rules.push_back(stop("left"));
-  obj->rules.push_back(stop("right"));
-  obj->rules.push_back(jump);
-  obj->rules.push_back(fall);
-}
-
-// 模板：巡逻敌人（一直走 + 定时换向，靠 set 属性当反向标记暂时不做）
-void ApplyPatrolTemplate(pgmmv::ObjectDoc* obj) {
-  using C = pgmmv::RuleCond;
-  using A = pgmmv::RuleAct;
-  pgmmv::Rule walk;
-  walk.name = "巡逻";
-  walk.when.push_back(MakeCond(C::kAlways));
-  walk.effects.push_back(MakeAct(A::kMove, 30, 0));
-  walk.effects.push_back(MakeAct(A::kAnim, 0, 0, "idle"));
-
-  pgmmv::Rule turn;
-  turn.name = "换向";
-  pgmmv::Cond t;
-  t.type = C::kTimer;
-  t.value = 120;
-  turn.when.push_back(t);
-  turn.effects.push_back(MakeAct(A::kFlip, 0, 0, "left"));
-
-  obj->rules.clear();
-  obj->rules.push_back(walk);
-  obj->rules.push_back(turn);
-}
-
 void DrawObjectRules(pgmmv::ObjectDoc* obj) {
   // ---- 规则表：一行一条，条件/动作内联编辑 ----
   if (ImGui::CollapsingHeader("规则", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -6305,18 +5955,6 @@ void DrawObjectRules(pgmmv::ObjectDoc* obj) {
       obj->rules.erase(obj->rules.begin() + del_rule);
       MarkDirty();
     }
-    if (ImGui::Button("模板：玩家", ImVec2(110, 22))) {
-      PushUndo();
-      ApplyPlayerTemplate(obj);
-      MarkDirty();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("模板：巡逻敌人", ImVec2(130, 22))) {
-      PushUndo();
-      ApplyPatrolTemplate(obj);
-      MarkDirty();
-    }
-    ImGui::SameLine();
     if (ImGui::Button("+ 规则", ImVec2(80, 22))) {
       PushUndo();
       pgmmv::Rule r;
